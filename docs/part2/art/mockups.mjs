@@ -8,6 +8,7 @@
 // the proposed Part 2 art density (Part 1 is 320×180 ×4).
 
 import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { encodePNG, upscale, rng, bayer, outline } from "../../../tools/gen/px.mjs";
@@ -149,6 +150,10 @@ const GLYPHS = {
   ".": G7("..... ..... ..... ..... ..... ..#.. ..#.."), "·": G7("..... ..... ..... ..#.. ..... ..... ....."),
   " ": G7("..... ..... ..... ..... ..... ..... ....."),
   "=": G7("..... ..... ##### ..... ##### ..... ....."),
+  // Italian accented capitals: accent on row 0, letter compressed into rows 1–6.
+  "È": G7(".#... ##### #.... ####. #.... #.... #####"), "É": G7("...#. ##### #.... ####. #.... #.... #####"),
+  "À": G7(".#... .###. #...# ##### #...# #...# #...#"), "Ì": G7(".#... .###. ..#.. ..#.. ..#.. ..#.. .###."),
+  "Ò": G7(".#... .###. #...# #...# #...# #...# .###."), "Ù": G7(".#... #...# #...# #...# #...# #...# .###."),
   "+": G7("..... ..#.. ..#.. ##### ..#.. ..#.. ....."), "!": G7("..#.. ..#.. ..#.. ..#.. ..#.. ..... ..#.."),
 };
 for (const [ch, g] of Object.entries(GLYPHS)) if (g.length !== 35) throw new Error(`glyph ${ch} has ${g.length} cells`);
@@ -965,79 +970,128 @@ function dressed(looks) {
 function coinIcon(img, x, y) { ellipse(img, x + 3.5, y + 3.5, 3.5, 3.5, hex("#ff8fb8")); put(img, x + 2, y + 2, hex("#ffe0ee")); rect(img, x + 3, y + 3, 2, 2, hex("#c2447a")); }
 function videoIcon(img, x, y, c = hex("#2a1a44")) { rect(img, x, y, 9, 7, c); trap(img, y + 1, y + 6, x + 5, 2.5, 0.5, [255, 255, 255]); }
 
-function mockWardrobe() {
+// Wardrobe strings. IT is drawn with the 5×7 stand-in font; RU is emitted as label records and
+// rasterised afterwards with the real Cyrillic pixel font (docs/part2/art/ru-overlay.py).
+const WARDROBE_TEXT = {
+  it: {
+    title: "GUARDAROBA", slots: ["TESTA", "CORPETTO", "ABITO", "SCARPE", "GIOIELLO", "MANTELLO"],
+    set: "SET: BALLO DI LUNA 2/6", looks: ["JEANS", "ROSA", "BALLO", "NOTTE", "LUNA", "AURORA", "ECO", "FORGIA"],
+    owned: "TUO", equipped: "INDOSSATO", level: "LIVELLO 6", weekly: "SETTIMANA", iap: "99 YAN",
+    equip: "INDOSSA", worn: "INDOSSATO", buy: "COMPRA", tryOn: "PROVA 1 LIVELLO", previewPrefix: "ABITO ",
+    lockedStars: "SERVONO 18", lockedLevel: "SBLOCCA AL LIVELLO 6", lockedWeekly: "SFIDA SETTIMANALE",
+  },
+  ru: {
+    title: "Гардероб", slots: ["Голова", "Корсаж", "Платье", "Туфли", "Украшение", "Накидка"],
+    set: "Набор: Лунный бал 2/6", looks: ["Джинсы", "Роза", "Бал", "Ночь", "Луна", "Аврора", "Эхо", "Кузня"],
+    owned: "Твоё", equipped: "Надето", level: "Уровень 6", weekly: "Неделя", iap: "99 ян",
+    equip: "Надеть", worn: "Надето", buy: "Купить", tryOn: "Примерить", previewPrefix: "Платье ",
+    lockedStars: "Нужно 18", lockedLevel: "Откроется на уровне 6", lockedWeekly: "Испытание недели",
+  },
+};
+
+function mockWardrobe(lang = "it", selIndex = 1) {
+  const S = WARDROBE_TEXT[lang];
+  const labels = [];
+  // One text entry point: IT draws with the stand-in font, RU records the label for the real font.
+  // `small` marks dense captions (cards, set line); `video` asks the RU overlay to draw the
+  // rewarded-ad icon itself, since only the real font knows the label width.
+  const T = (str, x, y, color, { scale = 1, shadow = null, center = null, small = false, video = false } = {}) => {
+    if (lang === "it") return text(img, str, center != null ? center - textW(str, scale) / 2 : x, y, color, { scale, shadow });
+    labels.push({ text: str, x, y, center, color, scale, shadow, small, video });
+  };
   const img = canvas();
   vgrad(img, 0, 0, W, H, [hex("#1a1236"), hex("#2e2257"), hex("#4a3a78")]);
   const r = rng(5);
   for (let i = 0; i < 70; i++) put(img, Math.floor(r() * W), Math.floor(r() * H), [240, 236, 255], 0.2 + r() * 0.5);
   // header
   panel(img, 8, 8, W - 16, 30, { fill: hex("#2a1d4c"), border: OUT, hi: hex("#5b47a0") });
-  text(img, "GUARDAROBA", 20, 15, GOLDC.hi, { scale: 2, shadow: OUT });
-  coinIcon(img, 420, 18); text(img, "3450", 432, 18, hex("#fff3d6"), { shadow: OUT });
-  starIcon(img, 480, 18); text(img, "14/18", 492, 18, hex("#fff3d6"), { shadow: OUT });
-  panel(img, W - 40, 12, 24, 22, { fill: hex("#efe6ff"), border: OUT }); text(img, "X", W - 31, 20, hex("#3b2a66"));
+  T(S.title, 20, 15, GOLDC.hi, { scale: 2, shadow: OUT });
+  coinIcon(img, 420, 18); T("3450", 432, 18, hex("#fff3d6"), { shadow: OUT });
+  starIcon(img, 480, 18); T("14/18", 492, 18, hex("#fff3d6"), { shadow: OUT });
+  panel(img, W - 40, 12, 24, 22, { fill: hex("#efe6ff"), border: OUT }); T("X", W - 31, 20, hex("#3b2a66"), { center: W - 28 });
 
   // slot tabs
-  const SLOTS = [["TESTA", "tiara"], ["CORPETTO", "bodice"], ["ABITO", "gown"], ["SCARPE", "slippers"], ["GIOIELLO", "brooch"], ["MANTELLO", "cape"]];
-  SLOTS.forEach(([name], i) => {
+  S.slots.forEach((name, i) => {
     const y = 46 + i * 46; const sel = i === 2;
     panel(img, 8, y, 92, 40, { fill: sel ? GOLDC.base : hex("#2d2356"), border: OUT, hi: sel ? GOLDC.hi : hex("#4b3f78") });
-    text(img, name, 16, y + 16, sel ? hex("#2a1a44") : hex("#efe6ff"));
+    T(name, 16, y + 16, sel ? hex("#2a1a44") : hex("#efe6ff"));
   });
-
-  // preview: Anna wearing the current combination, on a pedestal (integer ×3 of the game sprite)
-  panel(img, 108, 46, 168, 268, { fill: hex("#1f1740"), border: OUT, hi: hex("#4b3f78") });
-  glow(img, 192, 170, 80, hex("#ffd9a0"), 0.35);
-  ellipse(img, 192, 268, 44, 7, hex("#9d8fc0")); ellipse(img, 192, 266, 40, 5, hex("#c3b6e3"));
-  const combo = [["cape", hex("#3d4fa3")], ["bodice", hex("#f2a6c0")], ["gown", hex("#f2a6c0")], ["slippers", ECHO_C], ["brooch", hex("#ff5fa2")], ["tiara", ECHO_C]];
-  blit(img, dressed(combo), 144, 122, { scale: 3 });
-  text(img, "ABITO ROSA", 192 - textW("ABITO ROSA") / 2, 280, hex("#fff3d6"), { shadow: OUT });
-  text(img, "SET: BALLO DI LUNA 2/6", 192 - textW("SET: BALLO DI LUNA 2/6") / 2, 294, hex("#b8a6ee"));
 
   // look grid for the ABITO slot: every acquisition path visible, prices transparent
   const LOOKS = [
-    { name: "JEANS", looks: [], state: "owned" },
-    { name: "ROSA", looks: [["gown", hex("#f2a6c0")]], state: "equipped" },
-    { name: "BALLO", looks: [["gown", hex("#b8a6ee")]], state: "level", label: "LIVELLO 6" },
-    { name: "NOTTE", looks: [["gown", hex("#3d4fa3")]], state: "stars", label: "18" },
-    { name: "LUNA", looks: [["gown", hex("#e9e3ff")]], state: "coins", label: "1200" },
-    { name: "AURORA", looks: [["gown", hex("#ffc76e")]], state: "iap", label: "99 YAN" },
-    { name: "ECO", looks: [["gown", ECHO_C]], state: "weekly", label: "SETTIMANA" },
-    { name: "FORGIA", looks: [["skirt", hex("#ff8a5b")]], state: "coins", label: "800" },
-  ];
+    { looks: [], state: "owned" },
+    { looks: [["gown", hex("#f2a6c0")]], state: "equipped" },
+    { looks: [["gown", hex("#b8a6ee")]], state: "level", label: S.level },
+    { looks: [["gown", hex("#3d4fa3")]], state: "stars", label: "18" },
+    { looks: [["gown", hex("#e9e3ff")]], state: "coins", label: "1200" },
+    { looks: [["gown", hex("#ffc76e")]], state: "iap", label: S.iap },
+    { looks: [["gown", ECHO_C]], state: "weekly", label: S.weekly },
+    { looks: [["skirt", hex("#ff8a5b")]], state: "coins", label: "800" },
+  ].map((lk, i) => ({ ...lk, name: S.looks[i] }));
+  const selected = LOOKS[selIndex];
+
+  // preview: Anna in the SELECTED look over the rest of her outfit (integer ×3 of the game sprite)
+  panel(img, 108, 46, 168, 268, { fill: hex("#1f1740"), border: OUT, hi: hex("#4b3f78") });
+  glow(img, 192, 170, 80, hex("#ffd9a0"), 0.35);
+  ellipse(img, 192, 268, 44, 7, hex("#9d8fc0")); ellipse(img, 192, 266, 40, 5, hex("#c3b6e3"));
+  const rest = [["cape", hex("#3d4fa3")], ["bodice", hex("#f2a6c0")], ["slippers", ECHO_C], ["brooch", hex("#ff5fa2")], ["tiara", ECHO_C]];
+  blit(img, dressed([...rest, ...selected.looks]), 144, 122, { scale: 3 });
+  T(S.previewPrefix + selected.name, 0, 280, hex("#fff3d6"), { shadow: OUT, center: 192 });
+  T(S.set, 0, 294, hex("#b8a6ee"), { center: 192, small: true });
+
   LOOKS.forEach((lk, i) => {
     const cx = 286 + (i % 4) * 86; const cy = 46 + Math.floor(i / 4) * 124;
     const eq = lk.state === "equipped";
+    const isSel = i === selIndex;
     const locked = ["level", "stars", "weekly"].includes(lk.state);
-    panel(img, cx, cy, 80, 120, { fill: eq ? hex("#3b2a66") : hex("#2d2356"), border: eq ? GOLDC.hi : OUT, hi: hex("#4b3f78") });
+    panel(img, cx, cy, 80, 120, { fill: isSel ? hex("#3b2a66") : hex("#2d2356"), border: isSel ? GOLDC.hi : OUT, hi: hex("#4b3f78") });
+    if (isSel) { rect(img, cx - 2, cy - 2, 84, 2, GOLDC.hi); rect(img, cx - 2, cy + 120, 84, 2, GOLDC.hi); rect(img, cx - 2, cy, 2, 120, GOLDC.hi); rect(img, cx + 80, cy, 2, 120, GOLDC.hi); }
     glow(img, cx + 40, cy + 44, 30, hex("#ffd9a0"), 0.15);
     blit(img, dressed(lk.looks), cx + 8, cy + 2, { scale: 2, alpha: locked ? 0.45 : 1 });
     rect(img, cx + 2, cy + 97, 76, 21, hex("#1f1740"), 0.85);
-    text(img, lk.name, cx + 40 - textW(lk.name) / 2, cy + 99, hex("#efe6ff"));
+    const SM = { small: true };
+    T(lk.name, 0, cy + 99, hex("#efe6ff"), { center: cx + 40, ...SM });
     const by = cy + 109;
-    if (lk.state === "owned") text(img, "TUO", cx + 40 - textW("TUO") / 2, by, hex("#8ff0e6"));
-    if (eq) { panel(img, cx + 12, by - 2, 56, 11, { fill: GOLDC.base, border: OUT }); text(img, "INDOSSATO", cx + 40 - textW("INDOSSATO") / 2 + 0, by, hex("#2a1a44")); }
-    if (lk.state === "level") { rect(img, cx + 62, cy + 8, 8, 7, hex("#9d8fc0")); ring(img, cx + 66, cy + 7, 3, 1.2, hex("#9d8fc0")); text(img, lk.label, cx + 40 - textW(lk.label) / 2, by, hex("#c9bde8")); }
-    if (lk.state === "stars") { starIcon(img, cx + 26, by); text(img, lk.label, cx + 36, by, hex("#ffd35a")); }
-    if (lk.state === "coins") { coinIcon(img, cx + 22, by); text(img, lk.label, cx + 33, by, hex("#fff3d6")); }
-    if (lk.state === "iap") { panel(img, cx + 14, by - 2, 52, 11, { fill: hex("#8ff0e6"), border: OUT }); text(img, lk.label, cx + 40 - textW(lk.label) / 2, by, hex("#1a1236")); }
-    if (lk.state === "weekly") { ring(img, cx + 12, by + 3, 3.5, 1, hex("#ffd35a")); text(img, lk.label, cx + 20, by, hex("#ffd35a")); }
+    if (lk.state === "owned") T(S.owned, 0, by, hex("#8ff0e6"), { center: cx + 40, ...SM });
+    if (eq) { panel(img, cx + 12, by - 2, 56, 11, { fill: GOLDC.base, border: OUT }); T(S.equipped, 0, by, hex("#2a1a44"), { center: cx + 40, ...SM }); }
+    if (lk.state === "level") { rect(img, cx + 62, cy + 8, 8, 7, hex("#9d8fc0")); ring(img, cx + 66, cy + 7, 3, 1.2, hex("#9d8fc0")); T(lk.label, 0, by, hex("#c9bde8"), { center: cx + 40, ...SM }); }
+    if (lk.state === "stars") { starIcon(img, cx + 26, by); T(lk.label, cx + 36, by, hex("#ffd35a"), SM); }
+    if (lk.state === "coins") { coinIcon(img, cx + 22, by); T(lk.label, cx + 33, by, hex("#fff3d6"), SM); }
+    if (lk.state === "iap") { panel(img, cx + 14, by - 2, 52, 11, { fill: hex("#8ff0e6"), border: OUT }); T(lk.label, 0, by, hex("#1a1236"), { center: cx + 40, ...SM }); }
+    if (lk.state === "weekly") { ring(img, cx + 12, by + 3, 3.5, 1, hex("#ffd35a")); T(lk.label, cx + 20, by, hex("#ffd35a"), SM); }
   });
 
-  // actions: equip / buy / opt-in rewarded try-on (button only, never automatic)
-  const btn = (label, x, w, primary, video) => {
-    rect(img, x + 2, 324, w, 26, OUT, 0.5);
-    panel(img, x, 322, w, 26, { fill: primary ? GOLDC.base : hex("#efe6ff"), border: OUT, hi: primary ? GOLDC.hi : hex("#ffffff") });
+  // Action bar follows the SELECTED look (review fix: it used to offer COMPRA 1200 while the worn
+  // ROSA was selected). Worn → only a disabled "worn" button; owned → equip; coins/IAP → buy +
+  // opt-in rewarded try-on; locked by stars/level/weekly → the unlock condition (disabled) + try-on.
+  const btn = (label, x, w, { primary = false, video = false, disabled = false } = {}) => {
+    if (!disabled) rect(img, x + 2, 324, w, 26, OUT, 0.5);
+    const fill = disabled ? hex("#4b3f78") : primary ? GOLDC.base : hex("#efe6ff");
+    panel(img, x, 322, w, 26, { fill, border: OUT, hi: disabled ? null : primary ? GOLDC.hi : hex("#ffffff") });
+    const color = disabled ? hex("#9d8fc0") : hex("#2a1a44");
+    if (lang !== "it") return T(label, 0, 332, color, { center: x + w / 2, video });
     const tw = textW(label) + (video ? 13 : 0);
     if (video) videoIcon(img, x + w / 2 - tw / 2, 332);
-    text(img, label, x + w / 2 - tw / 2 + (video ? 13 : 0), 332, hex("#2a1a44"));
+    T(label, x + w / 2 - tw / 2 + (video ? 13 : 0), 332, color, video ? {} : { center: x + w / 2 });
   };
-  btn("INDOSSA", 286, 110, true, false);
-  btn("COMPRA 1200", 402, 110, false, false);
-  btn("PROVA 1 LIVELLO", 518, 114, false, true);
+  const bar = {
+    equipped: [[S.worn, { disabled: true }]],
+    owned: [[S.equip, { primary: true }]],
+    coins: [[`${S.buy} ${selected.label}`, { primary: true }], [S.tryOn, { video: true }]],
+    iap: [[`${S.buy} ${selected.label}`, { primary: true }], [S.tryOn, { video: true }]],
+    stars: [[S.lockedStars, { disabled: true }], [S.tryOn, { video: true }]],
+    level: [[S.lockedLevel, { disabled: true }], [S.tryOn, { video: true }]],
+    weekly: [[S.lockedWeekly, { disabled: true }], [S.tryOn, { video: true }]],
+  }[selected.state];
+  const BW = 168;
+  bar.forEach(([label, o], i) => btn(label, W - 8 - (bar.length - i) * (BW + 8), BW, o));
 
   vignette(img, 0.25);
-  save("mockup-wardrobe.png", img);
+  if (lang === "it") { save("mockup-wardrobe.png", img); return; }
+  // RU: native base without text + label records; ru-overlay.py rasterises them with the real font.
+  writeFileSync(join(tmpdir(), `.wardrobe-${lang}-native.png`), encodePNG(img));
+  writeFileSync(join(tmpdir(), `.wardrobe-${lang}-labels.json`), JSON.stringify(labels));
+  console.log(`wrote .wardrobe-${lang}-native.png + labels (${labels.length})`);
 }
 
 // ================================================================================================
@@ -1097,7 +1151,7 @@ function mockTricks() {
     rect(img, cx - 8, cy, 16, 6, hex("#c5b3ff")); for (const px of [-8, -1, 6]) trap(img, cy - 7, cy, cx + px + 1, 0.5, 2.5, hex("#c5b3ff"));
     rect(img, cx - 4, cy + 2, 2, 2, OUT); rect(img, cx + 2, cy + 2, 2, 1, OUT);
     motion(img, cx - 20, cy - 6, 2, hex("#c5b3ff")); motion(img, cx + 14, cy - 6, 2, hex("#c5b3ff"));
-    label(img, "LILLA = NON E ORO", x + 56, y + 76, hex("#c5b3ff"));
+    label(img, "LILLA = NON È ORO", x + 56, y + 76, hex("#c5b3ff"));
     const r = rng(8);
     for (let i = 0; i < 26; i++) put(img, x + 200 + r() * 70, y + 30 + r() * 50, [hex("#ff9fc4"), ECHO_C, hex("#ffe08a")][i % 3]);
     panel(img, x + 214, y + 48, 40, 14, { fill: hex("#efe6ff"), border: OUT }); text(img, "OPS!", x + 223, y + 52, hex("#3b2a66"));
@@ -1143,4 +1197,5 @@ mockBoss();
 mockMenu();
 mockSheet();
 mockWardrobe();
+mockWardrobe("ru", 4); // RU variant, a purchasable look selected (then run ru-overlay.py)
 mockTricks();

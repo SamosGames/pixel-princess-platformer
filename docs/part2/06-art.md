@@ -33,7 +33,9 @@ Deliverables in `docs/part2/art/` today:
 | `mockup-level1.png` | Target look: Level 1, Soglia degli Echi, gameplay frame |
 | `mockup-boss.png` | Target look: Level 6 arena, La Dama dell'Eco, debris telegraph |
 | `mockup-menu.png` | Target look: menu and world select |
-| `mockup-wardrobe.png` | Wardrobe/shop: slots, look states and prices, layered preview, opt-in try-on |
+| `mockup-wardrobe.png` | Wardrobe/shop (IT): slots, look states and prices, layered preview; the worn look is selected, so only a disabled "INDOSSATO" action |
+| `mockup-wardrobe-ru.png` | Same screen in RU with a purchasable look selected («Купить 1200» + opt-in «Примерить»), all text in Tiny5 (§3.8) |
+| `ru-overlay.py` | Draws the RU labels with the real font (`uv run --with pillow python docs/part2/art/ru-overlay.py Tiny5-Regular.ttf`) |
 | `mockup-tricks.png` | Four trick-moment telegraphs + the two rewarded-offer surfaces |
 | `mockup-heroine-palettes.png` | Part 1 vs Part 2 heroine resolution, 6 poses, 6 world palettes, frame budget |
 | `compare-level1.png` | Part 1 Level 1 next to the Part 2 Level 1 mockup |
@@ -324,9 +326,36 @@ Kept: squash/stretch, `hitStop`, `screenShake`, `dustPuff`, `confettiBurst`, `fa
 - **HUD** stays in the left column (the top-right belongs to the DOM audio button). One panel:
   collectible count, heart pips (5, then `×N` to `LIVES.MAX` 9), stars, timer. The boss bar goes
   top centre.
-- **Fonts**: ship a pixel font subset that **covers Cyrillic** so RU stops falling back to
-  `sans-serif`. Pixelify Sans' upstream family lists Cyrillic; verify glyphs and the OFL licence
-  before subsetting. Long prose stays `sans-serif`.
+- **Fonts: Tiny5 for every short UI label in IT, EN and RU.** RU is the primary market, and the
+  vendored `PixelifySans.woff2` (7 716 B) has 0 Cyrillic codepoints, so `uiFont()` sends every
+  Russian label to `sans-serif`. Candidates measured from `google/fonts` (2026-09-15), subset to
+  Latin-1 + U+0400–045F + № ₽ — … as WOFF2:
+
+  | Font | Licence | Cyrillic codepoints | А–я complete | Ё ₽ № « » | Italian À È É Ì Ò Ù | Subset WOFF2 | Verdict |
+  | --- | --- | ---: | --- | --- | --- | ---: | --- |
+  | Pixelify Sans (upstream, wght 400) | SIL OFL 1.1 | 91 | **no: О and П missing** (tofu in «Купить», «Примерить») | ₽ missing | yes | 8 312 B | rejected: the current look, but RU would break |
+  | **Tiny5** | **SIL OFL 1.1** | **174** (Cyrillic + Cyrillic-ext) | **yes** | **all** | **yes** | **10 044 B** | **chosen** |
+  | Press Start 2P | SIL OFL 1.1 | 178 | yes | all | yes | 14 464 B | rejected: 8×8 caps, «ёжик» illegible at small sizes, too wide for labels |
+
+  VT323, Silkscreen, Jersey 10 and Micro 5 have no Cyrillic subset.
+
+  **Grid.** Tiny5 is drawn on an 8 px em: 99.9% of outline points sit on a 128/1024-unit grid,
+  with caps 5 px, x-height 4 px, ascent 7, descent 2. Only multiples of 8 px render crisp:
+  - in game, 16 px runtime = 1 font pixel per art pixel (captions, desktop);
+  - **32 px runtime for HUD, buttons and tabs** (caps 20 runtime px ≈ 12 CSS px on an iPhone
+    landscape canvas, meeting the minimum below);
+  - 24 px is allowed where 32 px doesn't fit.
+
+  Set `k.text` sizes to these values and keep `crisp`.
+
+  **Integration** (implementation PR): replace the vendored woff2 with the Tiny5 subset under
+  the same `ASSETS.fonts.pixel` key and the matching `@font-face`, then remove the Cyrillic
+  branch from `uiFont()` so RU labels use the pixel font too. Emoji and long prose keep the
+  existing `sans-serif` rule. `tools/test/i18n.mjs` should assert that every RU canvas label's
+  characters are in the font's cmap.
+
+  `mockup-wardrobe-ru.png` renders every RU label with Tiny5 at 8/16/24 px native. The IT mockups
+  still use the 5×7 stand-in, which now includes À È É Ì Ò Ù.
 - **Minimum sizes**: HUD/button cap height ≥20 runtime px (≈12 CSS px on iPhone landscape), touch
   targets ≥44 pt.
 - **Menu** (`mockup-menu.png`): logo, world cards, "Guardaroba" button, heroine on a pedestal at
@@ -862,7 +891,8 @@ pipeline meets the bar.
 - Budget and a dedicated API key for the full AI run (the OpenRouter balance used here is shared with other tools).
 - Anna fails the lane-contrast gate (§4.10, finding 5): approve the rim/silhouette-metric approach.
 - Pixel density on a physical iPhone (§3.1).
-- Cyrillic coverage of the pixel font.
+- Resolved: Cyrillic pixel font is Tiny5 (§3.8). Remaining: the wardrobe card captions need a
+  layout that fits 24–32 px runtime text (the RU mockup uses 8 px native there, below the minimum).
 - Wardrobe path mix and IAP share (§3.9, market check).
 - Does Yandex moderation require AI-asset disclosure (§4.7)?
 - Should the Guardiana share the Dama's silhouette language?

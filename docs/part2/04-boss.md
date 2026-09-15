@@ -11,6 +11,10 @@ The working names below are placeholders until the Part 2 story and world names 
 locked. The design is intentionally a variant of the existing Custode di Pietra, not a
 new combat system: the player still wins with run, jump, wait, and a stomp.
 
+Market check: two encounters add a second return point and a second completion payoff,
+but also add content before the finale. Reconcile the mid-boss against the research on
+early-session retention before treating it as mandatory scope.
+
 ## Shared arena layout
 
 Use the existing 14-row maps and `TILE = 64`. Both boss levels end with this data-driven
@@ -82,6 +86,10 @@ simulation. Its shockwave speed remains below `PHYSICS.RUN_SPEED` and has a hard
 as in Part 1. If four hits make the finale too long, reduce HP before reducing the
 window or telegraph.
 
+Market check: the proposed 2-HP/4-HP split and roughly 12–25 seconds of active boss
+time affect repeat-run completion and abandonment. Validate the target session length
+and whether a shorter retry or an optional mid-boss performs better.
+
 ## Attacks and telegraphs
 
 Every attack has a visible, non-lethal warning before its lethal collider exists.
@@ -141,6 +149,9 @@ can be reused if new art is not worth the download cost.
 - The player enters through a checkpoint before the staircase, never on a spring, edge,
   spike, or active attack. A death spends the normal life/Coccoline cost and rebuilds
   the level from that checkpoint; the boss restarts in its safe `hover` state.
+- Market check: the checkpoint preserves the arcade retry loop, while the life/Coccoline
+  cost adds monetizable friction. Any rewarded-ad continuation must remain optional and
+  must not remove the guaranteed checkpoint retry or make the boss deliberately tedious.
 - The arena is a wide, flat, fully collidable floor. The boss's `floorY` is derived from
   real geometry, and the three-step approach obeys the existing no-double-jump rule.
 - The boss root is tagged `boss`, not `enemy`; its body is harmless. Only transient
@@ -156,6 +167,10 @@ can be reused if new art is not worth the download cost.
 - Completion has no Yandex SDK dependency. The local/no-SDK path can defeat the boss,
   collect the reward, and enter the next scene; Yandex analytics and save/leaderboard
   calls remain additive around the existing gameplay stop and level-complete flow.
+
+Market check: keep ads, leaderboard prompts, and any Part 2 meta reward outside the
+critical boss state machine. Compare the research before adding a rewarded revive,
+event modifier, or post-boss collection layer.
 
 ## Regression coverage
 

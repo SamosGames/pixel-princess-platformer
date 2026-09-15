@@ -431,8 +431,17 @@ opt-in rate. Keep equal size for Yandex rules and player trust; test copy, not d
 ## 4. Pipeline: ChatGPT images as source, deterministic `tools/gen` as the build
 
 Decided by the human: art is generated with ChatGPT image generation in the browser and
-downloaded. **Not tested yet** (see the Status block): the design below is complete, and
-Phase 0 proves it on one background layer and Anna idle/run.
+downloaded.
+
+> **Not tested — pending real generations.** Everything in §4 is design. No ChatGPT image has
+> been generated or processed yet; Phase 0 proves it on one World 1 background layer (2+
+> segments) and Anna's reference sheet + idle/run grid.
+
+Note on downsampling: the brief says "nearest downsample". The design keeps nearest-neighbour
+for **every integer upscale and runtime draw**, but reduces raw ChatGPT images by **area average
+per target cell, then nearest-colour palette quantization**. A raw generation has no pixel grid,
+so nearest-sampling it picks arbitrary anti-aliased pixels and changes with a 1 px crop shift.
+Averaging each cell first makes the result stable and still fully deterministic (§4.1, §4.2).
 
 ### 4.0 Procedural vs ChatGPT vs hybrid — for the human to choose in `review.html`
 
@@ -700,7 +709,7 @@ Sizes: S ≤1 week, M ≤3 weeks, L >3 weeks (as in `00-market.md`).
 
 | # | Phase | Tasks | Size | Exit check |
 | --- | --- | --- | --- | --- |
-| 0 | **Browser access + pipeline proof** | Get claude-in-chrome or Kapture access; generate World 1 near layer (2 segments) + Anna reference sheet + idle/run grid; `png-read`, `source`, `stitch` prototypes; `pipeline-demo.png`; composites; `review.html`; real-iPhone density test | M | **Human approves `review.html`**; seam invisible at 1:1; lane contrast passes; `npm run gen` twice → identical bytes |
+| 0 | **Browser access + pipeline proof** | The human logs into chatgpt.com in this worker's AO Browser panel (the worker drives it with `ao browser` and never types credentials); generate World 1 near layer (2 segments) + Anna reference sheet + idle/run grid; `png-read`, `source`, `stitch` prototypes; `pipeline-demo.png`; composites; `review.html`; real-iPhone density test | M | **Human approves `review.html`**; seam invisible at 1:1; lane contrast passes; `npm run gen` twice → identical bytes |
 | 1 | Art bible | Locked palettes + extensions, committed style sheet and world blocks, reference sheets | S | prompts and palettes committed as source |
 | 2 | Backgrounds W1, W2 | 5 layers, long segments, loops | M | composite gate green; draw calls ≤40 |
 | 3 | Heroines + base grid | 3 heroines × 32 cells from key poses + procedural in-betweens | M | overlay sync test in `features.mjs` green |

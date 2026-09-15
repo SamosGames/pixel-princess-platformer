@@ -191,6 +191,7 @@ reserved for Part 2 and do not collide with the existing legend
 | `R` | Resonance rune trigger | Level 2 | Activates the level's bounded `~` bridge set |
 | `~` | Phase bridge segment | Level 2 | One-way semisolid while its rune is active |
 | `C` | Charger enemy | Level 3 | Reuses the generic enemy update/telegraph path |
+| `T` | Optional trick-moment trigger | Levels 1–6 | Data-driven, telegraphed, and never a critical-path cheap death |
 
 The dispatcher must reject unknown map characters in development/test builds.
 It must not silently reinterpret a new uppercase token as a Part 1 token.
@@ -213,10 +214,23 @@ Required introduction order and baseline tuning from the mechanics section:
   it beside the mid-boss approach. Baseline values are notice distance 320,
   telegraph 0.55 seconds, speed 430, travel 256, recovery 0.8 seconds, and
   at most three chargers in a level.
+- **Levels 1–6 — `T`:** Use `T` for an optional trick trigger whose data
+  carries a stable `trickId`, presentation, telegraph, and route. Examples
+  are a floor blooming into flowers, a cheeky fake crown, or a moving exit.
+  Every trigger is on an optional route or clearly telegraphed, uses a warm
+  non-rage consequence, and is deterministic. It must not remove a life or
+  block the direct goal without a readable escape. `T` is a new token and is
+  intentionally outside the existing legend as well as the required L/V/R/~/C
+  mechanics.
 
 New token art and behavior must be generated/registered together. A map test
 must prove the tokens appear in their required levels and that `~` is not
 treated as a permanent solid.
+
+> **Market check:** The trick hook is valuable only when it creates surprise
+> and a shareable reaction without making Anna feel punished. A/B the
+> presentation and warmth of `T` moments, not whether the critical path is
+> allowed to kill the player cheaply; that invariant is closed.
 
 > **Market check:** The magnet, optional phase route, and charger create
 > collection and mastery hooks without adding a meta-progression layer. Keep
@@ -286,6 +300,102 @@ namespace and must not become a general Part 1 compatibility path.
 > login/cloud failure behavior before adding prompts that delay the first
 > playable level.
 
+## Wardrobe meta and cosmetic data
+
+Replace the six fixed after-level skins with a collectible wardrobe. Keep the
+existing layered-sprite contract, but make each layer a slot with several
+items. The launch data should have at least a default item plus two alternate
+looks in each slot; exact art count remains data-driven.
+
+The initial slot IDs preserve the current layer order and avoid a renderer
+rewrite:
+
+```js
+wardrobe.slots = ["skirt", "bodice", "necklace", "crown", "gloves", "cape"];
+wardrobe.items = {
+  "skirt.default":   { slot: "skirt",   unlock: "default" },
+  "skirt.echo":      { slot: "skirt",   unlock: { afterLevel: 1 } },
+  "skirt.starlit":   { slot: "skirt",   unlock: { stars: 5 } },
+  "bodice.default":  { slot: "bodice",  unlock: "default" },
+  // ...more data rows, including Coccoline, weekly, and IAP looks
+};
+wardrobe.equipped = {
+  skirt: "skirt.default",
+  bodice: "bodice.default",
+  necklace: "necklace.default",
+  crown: "crown.default",
+  gloves: "gloves.default",
+  cape: "cape.default"
+};
+```
+
+Each item has a stable ID, slot, asset key, i18n name key, and exactly one
+source of ownership: default, level completion, stars, Coccoline purchase,
+weekly-trial reward, or Yandex product entitlement. Prices are data, not
+scene literals. A look bundle may contain several item IDs, but it never
+contains hearts, time advantages, jump tuning, or Coccoline.
+
+Level completion still grants one free look per level. The six completion
+rewards should fill six different slots in the first campaign, and the reward
+card must name and preview the newly owned item. Star thresholds and Coccoline
+items provide alternate routes to complete a slot. Anna can freely equip any
+owned item in every slot; the level-select preview and the level-7 receipt
+render the complete selected combination, not a hard-coded progression set.
+
+The durable Part 2 save adds:
+
+```js
+{
+  wardrobe: {
+    owned: ["skirt.default", "skirt.echo"],
+    equipped: { skirt: "skirt.echo", bodice: "bodice.default" },
+    trial: null
+  },
+  wallet: {
+    coccolineEarned: {},
+    coccolineSpent: {}
+  },
+  iap: {
+    entitlements: {}
+  }
+}
+```
+
+The real payload may compact `equipped` by filling missing slots with
+defaults. Validate that every owned/equipped item exists in the Part 2 item
+catalog and that its slot matches. A rewarded locked-look preview is a
+temporary `{ itemId, level, runId }` lease: it may be used for that level only,
+never enters `owned`, and expires on completion, retry reset, or run reset.
+
+### Wardrobe/cloud merge rules
+
+Merge wardrobe data inside the Part 2 namespace only:
+
+1. Union validated `owned` item IDs and entitlement IDs; never union unknown
+   IDs or trust a local-only IAP claim.
+2. Take the maximum valid stars per level and union completed levels. Keep an
+   equipped item only if it is owned after the union; otherwise use that slot's
+   default.
+3. Merge Coccoline through idempotent earn/spend event IDs, not by adding two
+   balances. A level reward, x2 reward, purchase, and refund/reversal each has
+   a stable event ID. Union unseen events, compute the balance once, and
+   compact only after the merged record is cloud-saved. This prevents a stale
+   device from duplicating currency or undoing a purchase.
+4. Merge an active trial lease only when `runId` and level match; otherwise
+   discard it. A trial lease can never be promoted to permanent ownership by
+   merge.
+5. Preserve the existing monotonic merge behavior for best times and
+   progression. Settings remain last-valid-write-wins; wardrobe ownership and
+   paid entitlements are union-only.
+
+No wardrobe look, star, Coccoline balance, or entitlement may alter jump
+physics, level geometry, boss HP, or the recorded completion time.
+
+> **Market check:** Wardrobe collection connects the action loop to the strong
+> dress-up demand observed in the research. Keep the free level reward visible
+> and the Coccoline/IAP offers understandable; the player should always be
+> able to enjoy a complete look without paying.
+
 ## Leaderboards and finale handoff
 
 Part 2 gets a separate native Yandex leaderboard. Use a stable code constant
@@ -319,6 +429,163 @@ this app bundle.
 Do not add a server leaderboard or a new backend for this plan. Reuse the
 existing Yandex adapter boundary and native API path.
 
+## Rewarded boosts and fullscreen placement
+
+Keep the current Game Over rewarded continue and add only opt-in buttons at
+logical breaks. The adapter already has a single timeout-safe ad boundary;
+extend that boundary rather than calling the Yandex SDK from level builders.
+Every ad request must pause gameplay/audio, stop the gameplay timer, and
+resume only after `onClose`/`onError`. A reward is granted once, only from
+`onRewarded`, and never on an SDK error or a dismissed video.
+
+| Offer | Button location and timing | Grant and limits |
+| --- | --- | --- |
+| x2 level Coccoline | Level-complete reward card after levels 2–6 | Doubles that level's settled Coccoline payout; one claim per completion; it does not change time or physics |
+| +1 heart | The pre-boss checkpoint in levels 3 and 6, before entering the arena | Adds one capped heart once at that checkpoint; the offer is outside the boss state machine and never appears in the arena |
+| Start with magnet | Level-select/start panel for levels 2–6, before the level clock starts | Grants one level-scoped magnet start; it does not alter movement or jump values |
+| Try a locked look | Level-select/start panel for levels 2–6, before the level clock starts | Creates the temporary wardrobe trial lease described above; it never grants permanent ownership |
+| Game Over continue | Existing Game Over overlay after the last heart | Preserves the current checkpoint continuation; do not remove or replace it with a shop |
+
+No ad is requested before Level 2: no menu ad, level-1 ad, level-1 completion
+ad, or automatic first-session prompt. All rewarded offers require a visible
+button and a deliberate click/tap. Declining or failing an offer leaves the
+game playable and does not re-open the same offer in a loop.
+
+Fullscreen ads are allowed only after a completed level and only at the
+post-reward transition. The launch schedule is after levels 3 and 6, with at
+most one attempt per completion and no ad in either boss arena, during a
+checkpoint, after Game Over, on level start, or inside any `T` trick moment.
+Level 6's fullscreen opportunity is after La Dama dell'Eco is defeated and
+the reward card is complete; the level-7 finale/leaderboard order remains
+leaderboard first, receipt second. If the SDK or ad method is unavailable,
+skip silently.
+
+For fairness, weekly trial runs do not show the four optional boost offers or
+fullscreen prompts; the normal Game Over continue remains a separate product
+decision and must not change the submitted trial time. No reward may change
+jump physics or the recorded time in any mode.
+
+Track requests, successful rewards, dismissals, errors, and placement IDs via
+the existing optional analytics hook, without making analytics a gameplay
+dependency. Use Yandex requirements 4.4, 4.5, and 4.7 as the release test
+oracle: logical pause, opt-in button, and paused sound/gameplay.
+
+> **Market check:** Rewarded value is a retention/monetization experiment, not
+> a difficulty tax. Keep the first minute ad-free, make every offer optional,
+> and use the funnel to compare offer acceptance without adding rage or
+> interrupting the new mechanic introductions.
+
+## Weekly time trial and challenge sharing
+
+The weekly trial uses one of the six existing levels and has a separate native
+Yandex leaderboard. No runtime backend creates boards or stores challenge
+links. Provision the fixed board names in the Yandex console ahead of time,
+for example:
+
+```text
+pixel_princess_part2_trial_2026_W38
+pixel_princess_part2_trial_2026_W39
+...
+pixel_princess_part2_trial_2026_W53
+```
+
+At the beginning of each ISO week in UTC, compute `weekKey = YYYY-Www` and
+select `pixel_princess_part2_trial_${weekKey}`. The trial level is deterministic
+and rotates across the six campaign levels:
+
+```text
+weekIndex = floor((utcMonday(weekKey) - TRIAL_EPOCH_UTC) / 604800000)
+trialLevel = 1 + ((weekIndex % 6) + 6) % 6
+```
+
+`TRIAL_EPOCH_UTC` is a checked-in Part 2 config constant set at launch. The
+client's UTC clock is the no-backend schedule source; show the week key and
+level on the card so a clock mismatch is visible. Pre-provision the 53 ISO
+week boards for every calendar year before rotation into that year. If the
+selected board is not available, show the local trial result and do not submit
+to another board or the campaign board.
+
+Submit `timeMs` as the native score and include a small audit-safe extra-data
+value such as `trial=2026-W38;level=3`. The trial completion grants one
+exclusive wardrobe item, saved as a normal earned entitlement in the Part 2
+cloud save. It is not an IAP item and never grants a gameplay advantage.
+
+The existing share pill gains a trial context. It creates a self-contained
+Yandex page URL with no backend lookup:
+
+```text
+https://<part-2-game-page>/?challenge=trial&week=2026-W38&level=3&timeMs=42123
+```
+
+Build it with `URLSearchParams`, clamp `level` to 1–6, require an ISO week
+shape, and require a positive bounded `timeMs`. The receiving level-select
+card shows “beat my time” with the target level/time; it does not auto-start,
+grant the sender's reward, or trust query data as a leaderboard score. Use the
+existing `navigator.share`/clipboard fallback and translate the share text in
+IT/EN/RU.
+
+> **Market check:** A weekly reset supplies a light LiveOps reason to return
+> without a server or a permanent meta treadmill. Measure participation and
+> completion before increasing the rotation frequency or adding more boards.
+
+## Cosmetic IAP and Yandex payment boundary
+
+Sell only transparent look bundles. Product IDs are stable Part 2 IDs such as
+`p2_look_bundle_echoes` and `p2_look_bundle_starlight`; each product maps to a
+fixed list of wardrobe item IDs in the catalog. It cannot contain Coccoline,
+hearts, magnet duration, jump tuning, a time multiplier, ad removal, or any
+other pay-to-win effect. Do not use gacha or random bundles.
+
+The Part 2 platform adapter owns the payment flow:
+
+1. On Yandex boot, check whether the payments feature is available and fetch
+   the catalog. Display the price returned by Yandex, currency and included
+   looks before the purchase button; never invent a local price.
+2. From the wardrobe/menu button only, call the Yandex purchase method for a
+   selected product. The payment UI is a logical pause; no purchase prompt
+   opens in a level, trick moment, checkpoint, or boss arena.
+3. After success, refresh the Yandex-owned purchase inventory/receipt and
+   grant only the catalog entitlements confirmed by the platform. Store an
+   idempotent product/transaction record in the Part 2 cloud save as an
+   entitlement snapshot, while Yandex's server-side purchase inventory remains
+   authoritative. Never unlock a paid look solely because localStorage says
+   it was bought.
+4. On every later boot/auth, restore purchases before showing paid looks as
+   owned. Replaying the same purchase callback must be a no-op. A revoked or
+   refunded entitlement is removed only when the platform explicitly reports
+   that state.
+
+This satisfies Yandex requirements 1.13.3 and 1.13.4: the purchase state is
+server-backed by Yandex payment history plus the Part 2 cloud entitlement
+snapshot, and prices are the transparent catalog prices. It does so without
+restoring the stripped Vercel/API backend. If the SDK, payments feature, catalog, or restore call is
+unavailable, hide purchase buttons and keep all earned/default looks,
+levels, wardrobe preview, leaderboard, and receipt playable. A cached owned
+entitlement may remain visible offline, but a new purchase is not granted
+until Yandex confirms it.
+
+> **Market check:** Cosmetic IAP is the revenue test with the smallest risk to
+> the gift and the platformer. Show a real price and a clear bundle contents
+> panel, keep free level/star/Coccoline paths prominent, and treat a missing
+> payments SDK as a normal playable state rather than a conversion error.
+
+## Moderation and store-proof checklist
+
+Yandex requirement 3.6 is a release gate: a sequel is accepted as a separate
+game only when the setting and/or mechanics are fully reworked. Before the
+human contacts Yandex support, prepare a moderation packet that points to the
+new six echo worlds, La Dama dell'Eco, both bosses, L/V/R/~/C mechanics,
+wardrobe, and data-driven trick moments.
+
+The store title, icon, cover, screenshots, and first 60 seconds must show Part
+2 only: Soglia degli Echi, Anna's new visual treatment, the new antagonist,
+and the L/V steam-vent introduction. Do not use Part 1 world screenshots,
+Part 1 title copy, or old assets in the page or opening. The first playable
+minute must reach the new mechanics after `LoadingAPI.ready()`, while keeping
+the first ad-free rule. The human owns the support conversation; the
+implementation milestone only assembles evidence and checks the static
+archive for Part 1 leakage.
+
 ## Asset generation and packaging
 
 The Part 2 asset pipeline should reuse the existing deterministic generator
@@ -330,8 +597,8 @@ source of truth.
 Pipeline additions:
 
 1. Add a Part 2 manifest selecting the six world backgrounds, the two boss
-   variants, the L/V/R/C sprites, `~` bridge visuals, vent warning/active
-   frames, and the finale art/audio.
+   variants, the L/V/R/C sprites, `~` bridge visuals, `T` trick indicators,
+   vent warning/active frames, and the finale art/audio.
 2. Add generator inputs for any new sprite strips or animation frames. Keep
    frame dimensions and animation metadata aligned with `src/animspec.js`;
    fail generation on missing frames rather than rendering a blank fallback.
@@ -413,6 +680,9 @@ Recommended workflow:
    fragments in code.
 5. Include the exact six world names and the finale/boss names in the i18n
    fixtures so a later rename cannot silently desync the map registry and UI.
+6. Add keys for wardrobe slots/items, prices and bundle contents, each reward
+   button/status, the weekly week/level/time card, share challenge copy,
+   payment restore/errors, and moderation-safe ad disclosures in IT/EN/RU.
 
 The Part 2 package needs only its own dictionary bundle plus shared i18n
 formatting code. It must not silently fall back to Part 1's dictionary for a
@@ -439,13 +709,21 @@ level, boss, and i18n test patterns:
 | --- | --- |
 | App/package identity | Part 2 entry boots with the new app ID/config; the staged archive has its own index and contains no Part 1 entry, save key, board ID, legacy API, or Vercel deploy material. |
 | Level registry | Exactly levels 1–6 build; names and order match the locked table; level 7 routes to finale and never to `buildLevel`. |
-| Legend/maps | `L` and `V` occur in level 1, `R` and `~` in level 2, `C` in level 3; `~` is not permanent solid; unknown tokens fail loudly. |
+| Legend/maps | `L` and `V` occur in level 1, `R` and `~` in level 2, `C` in level 3, and `T` tricks occur in levels 1–6; `~` is not permanent solid; unknown tokens fail loudly. |
 | Geometry | Critical-path gaps are ≤2 cells, no double-jump path is required, and every spring landing is on `#`, not `=`. |
 | Mechanics | Magnet caps targets/range and excludes keys/bosses; vent collision follows its deterministic cycle; bridge timer and one-way collision work; charger telegraph/recovery and count cap hold. |
 | Bosses | `p2.mid` has 2 HP at the end of level 3; `p2.final` / La Dama dell'Eco has 4 HP in level 6; both use `G`/`makeBoss`, stomp/bounce correctly, attacks are telegraphed hazards, defeat cancels future spawns, and key/goal remain reachable. |
 | Save isolation | A fixture containing Part 1 local keys or a Part 1-shaped cloud object is ignored and unchanged. A missing Part 2 save starts at level 1. No cross-title migration call occurs. |
 | Part 2 cloud merge | Same-app local/cloud union is deterministic, idempotent, monotonic for completion/best times, rejects malformed data, and tolerates offline/API failure. |
+| Wardrobe | Every slot has a default and several catalog items; completion grants one free look per level; stars/Coccoline unlocks, free combination, level-select preview, receipt preview, temporary-look expiry, and invalid-item rejection work. |
+| Wardrobe merge | Owned item IDs and paid entitlements union only after catalog validation; stars/completed levels merge monotonically; idempotent currency events cannot duplicate Coccoline or undo a purchase; equipped invalid/locked items fall back to defaults. |
 | Leaderboard/finale | Only the Part 2 board ID is submitted; submission failure does not block the level 7 finale; leaderboard opens before the receipt. |
+| Ads/boosts | No ad request occurs before level 2; every rewarded path is button-only and grants exactly its stated x2 currency, pre-boss heart, start magnet, look trial, or Game Over continue; gameplay/audio/timer pause during ads; no boost appears in an arena. |
+| Fullscreen/tricks | Fullscreen occurs only after completed levels 3/6 and never in an arena/start/Game Over/trick; `T` triggers are data-driven, deterministic, optional or telegraphed, and absent from the critical-path cheap-death route. |
+| Weekly trial | UTC ISO week calculation selects one level and `pixel_princess_part2_trial_YYYY_Www`; the 53-board provisioning/fallback path works, native score is time, exclusive look reward is saved, and no backend or campaign-board submission is attempted. |
+| Share challenge | The existing share pill emits/clips `challenge=trial`, validated week, level, and positive `timeMs`; receivers see a target card without auto-start or trusted query-based rewards, with native-share and clipboard fallbacks. |
+| Payments/IAP | Catalog price/content is displayed; confirmed purchases restore idempotently into Yandex-backed/cloud-saved entitlements; refunds/revocations follow SDK state; unknown/local-only claims do not unlock looks; no paid gameplay advantage is present. |
+| No-SDK fallback | Without Yandex ads/payments/leaderboards/cloud, earned/free wardrobe, normal levels, trial-local result, receipt, and controls remain playable; purchase/reward buttons hide or degrade without errors. |
 | i18n | IT/EN/RU key sets and placeholders match; exact world/boss strings exist; Italian copy passes feminine-agreement review; long strings fit mobile layouts. |
 | Package/perf | `npm run package:yandex` succeeds, reports archive size/file count/audio bytes, and excludes Part 1-only files. |
 | Audio | Downloaded AI music masters have provenance metadata; archive music is MP3/96 kbps, SFX are generated PCM WAV/22050 Hz mono, audio stays within the 4 MiB target/5 MiB cap, and only the current music track is loaded. |
@@ -508,20 +786,27 @@ implementation estimates, not promises.
 | M4 — six level data | Port/author levels 1–6 under the locked world names, place mechanics in their required introduction levels, and prove geometry/goal routes. | L (5–8 days; each level M) | M3 |
 | M5 — generated presentation/audio | Add Part 2 backgrounds, mechanic/boss/finale art, AI-music source metadata, SFX synthesis inputs, animation metadata, audio/manifest inputs, and deterministic generation checks. | M (3–5 days) | M1, M4 |
 | M6 — i18n/leaderboard/finale | Add IT/EN/RU Part 2 keys, feminine Italian review, own native board wiring, level 7 finale order, receipt, and offline fallback. | M (2–3 days) | M2, M4, M5 |
-| M7 — release verification | Run `npm test`, mobile checks, package isolation/size/audio checks, low-end performance smoke, engine-sync audit, and Yandex staging smoke with the new app ID. | L (3–5 days) | M1–M6 |
+| M7 — wardrobe meta | Replace fixed skins with slot/item catalog, completion/star/Coccoline rewards, free combination UI, level-select/receipt previews, temporary look trials, and wardrobe/currency/cloud merge. | M (5–8 days) | M2, M4, M5, M6 |
+| M8 — boosts and tricks | Add button-only rewarded offers, exact pre-boss/checkpoint placement, level-3/6 fullscreen schedule, Game Over regression, `T` trick data/build path, and ad/trick telemetry. | M (4–6 days) | M3, M4, M6, M7 |
+| M9 — weekly trial/share | Add UTC week/level rotation, pre-provisioned native board naming, exclusive-look reward, trial fairness rules, and share-pill query links/fallback. | M (4–6 days) | M4, M6, M7 |
+| M10 — cosmetic payments | Add catalog/prices, look-bundle purchase/restore, Yandex-backed/cloud entitlement records, idempotent refunds/revocations, and no-SDK playable fallback. | M (4–6 days) | M2, M6, M7 |
+| M11 — moderation/store proof | Produce new title/icon/cover/screenshots, first-60-second L/V capture, Part 1 leakage scan, and the support packet for Yandex requirement 3.6. | S (1–2 days) | M4, M5, M7, M8 |
+| M12 — release verification | Run `npm test`, mobile checks, package isolation/size/audio checks, wardrobe/ad/trial/payment tests, low-end performance smoke, engine-sync audit, and Yandex staging smoke with the new app ID. | L (4–6 days) | M8–M11 |
 
-The critical path is M0 → M1 → M3 → M4 → M6 → M7. M2 and M5 can run in
-parallel once the copied repo boundary is stable, but M7 must not start until
-the app ID, native board, archive target, fresh-save behavior, and upstream
-engine-sync policy are confirmed.
+The critical path is M0 → M1 → M3 → M4 → M6 → M7 → M8/M9/M10 → M11 → M12.
+M2 and M5 can run in parallel once the copied repo boundary is stable, but
+M12 must not start until the app ID, campaign/trial boards, archive target,
+fresh-save behavior, payment catalog, and upstream engine-sync policy are
+confirmed.
 
 ## Open questions
 
 These do not reopen locked canon:
 
 - What numeric Yandex app ID and exact console leaderboard ID will be assigned
-  to Part 2? The code should use release-config placeholders until console
-  provisioning is complete.
+  to Part 2, and which 53 weekly-trial boards will be provisioned for the
+  first launch year? The code should use release-config placeholders until
+  console provisioning is complete.
 - What is the mid-boss's final display name and portrait treatment? Its
   contract remains `p2.mid`, 2 HP, end of level 3, and `G`/`makeBoss`.
 - Which Part 2-generated assets can share source primitives while staying in
@@ -530,11 +815,15 @@ These do not reopen locked canon:
 - Does Yandex cloud-save availability differ across target regions/devices?
   Confirm the adapter's error/consent behavior before adding any first-session
   prompt.
-- What rewarded-ad or optional share cadence, if any, is appropriate for the
-  standalone gift? No ad or monetization behavior is part of the locked
-  engine contract; reconcile it with the market research before implementation.
+- Which payment product IDs and catalog prices will Yandex approve for the
+  initial look bundles, and what purchase-inventory/restore API shape is
+  available in the target SDK revision?
+- Which downloaded Suno/ElevenLabs masters are cleared for the gift, and which
+  Part 2 source-audio metadata format will be used for the release audit?
 
 Closed decisions: standalone Yandex title, new app/archive/leaderboard,
 fresh save with no Part 1 migration, six playable levels plus non-playable
 level 7, `MAX_LEVEL=7`, two bosses at 2/4 HP, and the L/V/R/~/C token
-introductions are not open questions.
+introductions, wardrobe meta, opt-in boost/fullscreen placement, warm
+data-driven trick moments, weekly trial, cosmetic IAP, and the requirement 3.6
+moderation/store-proof gate are not open questions.

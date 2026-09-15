@@ -212,6 +212,143 @@ existing death path.
 **Market check:** A fixed cycle supports fair short sessions; if research favors return-visit
 variation, seed only optional vent patterns and keep the critical path deterministic.
 
+## 5. Trick moments — optional, warm, data-driven surprises
+
+These are small `def.tricks` entries consumed by `build.js`, not new ASCII map tokens. Each entry
+has a `kind`, position, `route: "bonus"`, a telegraph key and any prevalidated safe endpoints.
+The builder dispatches `flower-floor`, `moving-exit` and `fake-crown`; level data chooses where they
+appear. They are reactions and jokes, not a new rage mode.
+
+**Locked placement.** Level 1 — **Soglia degli Echi** — introduces one flower floor after the vent
+and magnet beats. Level 2 — **Chiome delle Campanelle** — introduces a moving bonus exit. Level 3 —
+**Archivio Sospeso** — introduces the fake crown before the mid-boss approach. Levels 4–6 may reuse
+one or two kinds on optional routes; Level 6 keeps every trick outside La Dama dell'Eco's arena.
+
+### Flower floor
+
+- **Behaviour:** an optional patch that looks like ordinary flooring blooms into petals when Anna
+  steps on it, briefly revealing a lower safe floor or a marked semisolid route. It closes/reforms
+  after the gag; it never becomes a lethal hole.
+- **Config.js tunables:** add to the existing `MECHANICS` section in `src/config.js`:
+  `TRICK_FLOWER_TELEGRAPH = 0.45` seconds, `TRICK_FLOWER_OPEN = 0.35` seconds and
+  `TRICK_FLOWER_REFORM = 1.2` seconds.
+- **Telegraph:** petals tremble and a soft bell cue plays before the patch changes. The safe lower
+  surface is visible in the camera before activation; `p2.hint.trick.flower` is a translated,
+  optional hint, not a surprise death message.
+- **Safety and engine interaction:** the patch is a dedicated dynamic `solid`/`semisolid` object,
+  never an `=` tile and never part of the greedy static mesh. A fallback floor or `#` catches her,
+  and the route remains optional. It never receives the `hazard` tag, cannot trigger `die()`, and
+  must not overlap a spring, checkpoint, ravine lip or required landing.
+- **Mobile cost:** one body, one timer and one generated/primitive bloom; no per-frame particle
+  stream. Cap the level at `MECHANICS.TRICK_MAX_PER_LEVEL = 3` total trick moments.
+
+### Moving bonus exit
+
+- **Behaviour:** a goal-looking bonus portal on an optional bell route slides one cell to a marked
+  endpoint when Anna approaches, then settles and opens. The real `>` level goal remains static and
+  completion-safe; this is a detour payoff, not a moving finish line.
+- **Config.js tunables:** add to `MECHANICS`:
+  `TRICK_EXIT_SHIFT = 64` px, `TRICK_EXIT_SPEED = 240` px/s,
+  `TRICK_EXIT_SETTLE = 0.7` seconds and `TRICK_EXIT_MAX_MOVES = 1`.
+- **Telegraph:** the portal outline pulses, its destination endpoint lights first, and the move
+  starts only after a visible pause. `p2.hint.trick.exit` can explain the joke without telling Anna
+  she missed a required goal.
+- **Safety and engine interaction:** endpoints are authored in `def.tricks`, prevalidated on safe
+  floor or semisolid cells and within a normal run/jump from the optional route. The portal keeps an
+  `area` but no blocking body; it never alters `=` colliders, goal gates, boss state or recorded
+  time. If the camera leaves it, culling hides the art only and the finite move completes normally.
+- **Mobile cost:** one scalar interpolation and one portal area; no pathfinding, particles or
+  per-frame object creation. Do not place it in the Level 6 boss arena.
+
+### Fake crown
+
+- **Behaviour:** an optional crown prop looks like a wardrobe reward, hops to the next clearly
+  marked safe pedestal at most twice, then resolves into a harmless sparkle/confetti gag and a normal
+  optional pickup at the final pedestal. It does not unlock a look by itself; wardrobe ownership
+  remains in the wardrobe flow.
+- **Config.js tunables:** add to `MECHANICS`:
+  `TRICK_CROWN_HOPS = 2`, `TRICK_CROWN_SHIFT = 128` px and `TRICK_CROWN_PAUSE = 0.45` seconds.
+- **Telegraph:** it wiggles, flashes a warm outline and shows the destination pedestal before each
+  hop. `p2.hint.trick.crown` is playful guidance; no fake reward is silently removed.
+- **Safety and engine interaction:** the crown is not `collectible`, `enemy` or `hazard` while it
+  is moving. Each target is a data-authored optional perch with a safe floor below; after the final
+  hop, the spawned pickup uses the normal collection path. It never sits on a required spring arc,
+  checkpoint, boss reward or critical-path collectible line.
+- **Mobile cost:** one bounded state machine and one art object per trick. The final pickup is
+  created once, not per frame; cap all trick definitions by `TRICK_MAX_PER_LEVEL`.
+
+**Shared trick contract.** Every trick has a visible telegraph, a finite state machine and a safe
+fallback. A trick cannot be the only route to the portal, cannot consume a life, cannot change
+`PHYSICS`, and cannot add elapsed time to or subtract it from the recorded run. The culling rule is
+unchanged: hide drawing off-screen, but keep the small state machine deterministic. The generated
+art remains optional; Kaplay primitives cover petals, outlines and sparkles if an asset is not worth
+the mobile download.
+
+**Market check:** The trick hook borrows the surprise/reaction appeal of *Level Devil* without its
+rage tone. Measure optional-route discovery, quit-after-trick and replay behaviour; never raise
+failure pressure by moving a trick onto the critical path.
+
+## 6. Opt-in rewarded boost hooks — state only, no physics or time advantage
+
+Rewarded offers appear only behind an explicit button at a logical pause. The ad callback sets a
+transient, level-scoped Part 2 flag only after the reward succeeds; decline, failure or no SDK leaves
+the flag false. Yandex pause/resume rules apply while the video is open. No offer appears before
+Level 2, inside either boss arena, or during an active boss phase. The existing Game Over continue
+remains available and is not replaced by these boosts.
+
+### Flags and their exact effects
+
+Store these as `pj.part2Boosts` in the standalone Part 2 save/run state, scoped by `levelId`:
+
+```js
+{
+  startWithMagnet: false,
+  doubleLevelCoccoline: false,
+  preBossHeart: false,
+  trialLookKey: null,
+}
+```
+
+- **`startWithMagnet`:** the Level Select/start-break button offers the existing `L` magnet for
+  `POWERUP.MAGNET_DURATION` at level entry. Consume it once on the first entry; a checkpoint retry
+  does not silently regrant it. It changes only pickup attraction, never Anna's velocity, jump,
+  enemy speed or route geometry.
+- **`doubleLevelCoccoline`:** the post-completion reward card may apply a ×2 multiplier to that
+  level's explicit Coccoline clear payout. It never doubles the 500-Coccoline death bill, score,
+  existing banked currency, ad rewards or any leaderboard value. The flag is consumed once when the
+  clear payout is committed.
+- **`preBossHeart`:** at the pre-boss checkpoint in Level 3 — **Archivio Sospeso** — or Level 6 —
+  **Tetto del Primo Ballo** — an explicit button may grant exactly one `addLife()` through the
+  existing life cap. Claiming it marks the flag before entering the arena; the boss state machine
+  never reads or awards it. No heart offer appears in the arena itself.
+- **`trialLookKey`:** the wardrobe/level-select button lets Anna wear one locked wardrobe look for
+  exactly the current level. Apply it through the existing skin-layer composition; it grants no
+  ownership, stats or physics change and clears on level completion or abandoning the level. A
+  retry of the same level keeps the trial look until the level result is decided.
+
+If implementation needs constants, keep them in existing `src/config.js` sections: reuse
+`POWERUP.MAGNET_DURATION`, add `POWERUP.TRIAL_LOOK_LEVELS = 1`, add
+`SCORE.REWARDED_COCOLINE_MULTIPLIER = 2`, and add `LIVES.REWARDED_PRE_BOSS_HEARTS = 1`.
+These are economy/presentation values, not new physics knobs. The offer result must not mutate
+`PHYSICS`, `player.jumpMul`, `BOSS`, `getRunTime()` or the time submitted to the leaderboard.
+
+### Offer placement and timing contract
+
+- Level Select/start break, from Level 2 onward: `startWithMagnet` and `trialLookKey` buttons.
+- Completed-level reward card, from the first eligible break after Level 2: `doubleLevelCoccoline`.
+  Do not insert an ad before Level 2.
+- Pre-boss checkpoint pause, before the Level 3 or Level 6 arena: `preBossHeart`; freeze the
+  gameplay tree before opening the Yandex offer and resume it afterward.
+- Fullscreen ads remain only after completed levels 3 and 6, never inside an arena. Rewarded ads
+  are opt-in buttons, never timers, auto-open prompts or a condition for continuing.
+- The weekly time trial disables all rewarded boosts for a clean native leaderboard comparison;
+  an exclusive look may still be cosmetic. The existing share pill can carry the trial level and
+  recorded time without a backend.
+
+**Market check:** This is the recommended hybrid hook: optional value at logical breaks, cosmetic
+try-ons and no pay-to-win or time manipulation. Measure offer acceptance, ad completion, level
+completion and Game Over continuation separately before adding more surfaces.
+
 ## Required tutorial i18n keys
 
 Add every key below to the source Italian dictionary and matching English/Russian dictionaries;
@@ -225,6 +362,9 @@ address Anna in the feminine form where grammar requires it.
 | `p2.hint.rune` | Touch the rune to call the echo bridge. |
 | `p2.hint.bridge` | The phase bridge is fading; step off safely. |
 | `p2.hint.charger` | Wait for the flash, then jump the charge. |
+| `p2.hint.trick.flower` | The flowers are blooming; the safe lower route remains open. |
+| `p2.hint.trick.exit` | The bonus portal is moving to the lit mark. |
+| `p2.hint.trick.crown` | The crown is playing a little game; follow the marked perch. |
 
 ## Open questions
 

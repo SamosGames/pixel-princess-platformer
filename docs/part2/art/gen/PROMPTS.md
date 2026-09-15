@@ -1,4 +1,4 @@
-# ChatGPT prompt list — World 1 backgrounds + Anna (generation order)
+# AI image prompt list — World 1 backgrounds + Anna (generation order)
 
 **Tested on 2026-09-15 with `google/gemini-3.1-flash-image` via the OpenRouter API** (no
 browser login; the ChatGPT browser route was not available). The generated files and their exact
@@ -6,22 +6,18 @@ prompts live next to this file. Every `<name>.prompt.txt` ends with the model, d
 size, cost and terms URL. Twelve generations cost $0.814 in total: B00–B02, B04–B05, B09–B10,
 A01–A03, plus the outpaint continuation below. Design: `docs/part2/06-art.md` §4.
 
-Wording note: the text below says "ChatGPT" in places. The same prompts were used with the Gemini
-image model; only the transport differs.
-
 ## Rules for every generation
 
 - Send **only** these art prompts. Never paste repo code, secrets, file contents or paths.
   The only attachments allowed are images produced earlier in this list.
-- **One chat per family** (W1 backgrounds, Anna). Paste the style sheet once at the top of each
-  chat, then send each prompt as its own message. Reply "regenerate" in the same chat only when
-  the acceptance check fails. Record why in the prompt file.
-- **Download the original PNG** (not a screenshot) as `docs/part2/art/gen/<file>`. Save the
-  **exact** text sent (including the style sheet and world block, expanded) as
-  `<file without .png>.prompt.txt`. Add three lines at the bottom: date, the image size ChatGPT
-  actually returned, and the attempt number.
+- **One API request per image**, stateless: the prompt text is always the fully expanded blocks,
+  never "same as before". Attachments are passed inline. Regenerate only when the acceptance check
+  fails, and record why in the prompt file.
+- **Save the returned PNG** as `docs/part2/art/gen/<file>` and the **exact** text sent as
+  `<file without .png>.prompt.txt`. The footer records model, provider, date, returned size, cost,
+  attempt number and terms URLs.
 - **Requested size**: ask for the wide landscape format for backgrounds and the square format for
-  character sheets. At the time of writing ChatGPT returns 1536×1024 and 1024×1024. Always record
+  character sheets. In this run Gemini 3.1 Flash Image returned 1376×768 (16:9), 1584×672 (21:9) and 1024×1024 (1:1). Always record
   the real size; the processing reads it from the file.
 - **Background colour for every cut-out**: flat solid magenta `#FF00FF`, with no gradient, floor
   shadow or texture. Only the sky is opaque.
@@ -354,4 +350,4 @@ touch the image edge · [ ] no extra limbs or merged figures.
    area-average downsample, OKLab quantize to the W1 palette, loop, slice.
 3. Look at raw vs processed side by side at 1:1 and ×4. If processing exposes a problem the
    checklist missed, add that line to the checklist, then regenerate.
-4. Add the images and prompts to `review.html` (ChatGPT column, backgrounds, Anna, prompts).
+4. Add the images and prompts to `review.html` (AI column, backgrounds, Anna, prompts).

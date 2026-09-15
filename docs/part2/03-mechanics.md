@@ -5,6 +5,11 @@ updrafts, breeze, crumble platforms, pendulums, stars, feathers, crabs, flyers, 
 rollers, stalactites and the Keeper boss. Part 2 should add new decisions without adding a second
 movement system.
 
+Part 2 is a standalone Yandex Games title: its own game page, static archive, fresh save and native
+leaderboard. It does not migrate Part 1 saves. Part 1 is backstory only. The campaign is six
+playable levels numbered 1–6, followed by the non-playable finale as level 7; the reused/forked
+engine therefore keeps `MAX_LEVEL = 7`.
+
 ## Engine constraints
 
 - Keep the critical path completable with run, jump and waiting: no double jump, and no critical-path
@@ -29,9 +34,26 @@ movement system.
   remain behind the platform adapter; local fallback must still allow a complete run.
   Market check: this section adds no new ad gate or paid power; reconcile any rewarded-ad/meta
   recommendation with the existing continuation flow instead of making a mechanic mandatory.
+- The only new map tokens in this section are `L`, `V`, `R`, `~` and `C`; none collides with the
+  current `build.js` legend (`= # M ! F g S G r w B P ^ o * + H c f h s @ >`). Add explicit
+  builder cases before using them; unknown characters currently become empty air.
 - Every player-facing label, hint and tutorial beat gets IT/EN/RU dictionary keys. Italian copy is
   feminine and warm: this is still a gift for Anna. The finale keeps its existing
   `CLASSIFICA → SCONTRINO` closing order; these mechanics do not belong in `finale.js`.
+
+## Locked placement summary
+
+| Level | World | New mechanic placement |
+| --- | --- | --- |
+| 1 | Soglia degli Echi | `V` steam vent first, then `L` Coccoline magnet |
+| 2 | Chiome delle Campanelle | `R` rune and `~` phase bridge |
+| 3 | Archivio Sospeso | `C` charger; mid-boss at the level end has 2 HP |
+| 4 | Fucina dell'Alba | Reuse and combine understood mechanics; no new token |
+| 5 | Mare delle Stelle | Reuse the set with optional patterns; no new token |
+| 6 | Tetto del Primo Ballo | Final La Dama dell'Eco boss has 4 HP; no new token |
+
+Both bosses reuse the `G`/`makeBoss` contract from `04-boss.md`; this section does not turn either
+boss into a generic `enemy`.
 
 ## 1. Resonance rune and phase bridge — traversal mechanic
 
@@ -41,7 +63,7 @@ optional upper route over a scenic gap or collect a bonus line. A second touch r
 The first implementation should support one bridge set per level, not a general scripting system.
 The timer must pause while Anna is standing on a bridge and let her step off before it disappears.
 
-**Config.js tunables.** Add to `MECHANICS`:
+**Config.js tunables.** Add these to the existing `MECHANICS` section in `src/config.js`:
 
 - `PHASE_BRIDGE_DURATION = 5.0` seconds;
 - `PHASE_BRIDGE_REFRESH = 0.8` seconds of trigger debounce;
@@ -51,12 +73,12 @@ The timer must pause while Anna is standing on a bridge and let her step off bef
 The bridge's cell positions and optional-route status stay in the level definition; the numbers
 above are global feel/safety limits.
 
-**Introduction and teaching beat.** Introduce in Part 2 Level 2, provisionally as `R` beside one
-safe, single-cell-high ledge and `~` directly ahead. The rune lights when touched, the bridge
-appears, and the first bonus pickup is visible on it. The critical lane continues underneath, so
-missing the lesson costs only the bonus. Part 2 Level 4 may reuse it with two short bridges and a
-checkpoint between them, but must not turn the mechanic into a mandatory timed gate without a
-reachable reactivation point.
+**Introduction and teaching beat.** Introduce in Level 2 — **Chiome delle Campanelle** — as `R`
+beside one safe, single-cell-high ledge and `~` directly ahead. The rune lights when touched, the
+bridge appears, and the first bonus pickup is visible on it. The critical lane continues
+underneath, so missing the lesson costs only the bonus. Level 4 — **Fucina dell'Alba** — may reuse
+it with two short bridges and a checkpoint between them, but must not turn the mechanic into a
+mandatory timed gate without a reachable reactivation point.
 
 **Physics, culling and colliders.** The rune is an `area` trigger with no `body`. Each `~` is a
 dedicated `solid`/`semisolid` object using the same one-way resolution as `makeSemisolid`; toggle
@@ -80,17 +102,23 @@ so score, confetti and three-star counting stay unchanged. It does not attract h
 feathers, keys or boss rewards, and it never changes Anna's velocity. Place it off the critical path
 or after a safe run-up; it is an exploration aid, not a second invincibility button.
 
-**Config.js tunables.** Add to `POWERUP`:
+**Final placement choice.** Keep the magnet's introduction in Level 1 — **Soglia degli Echi** —
+alongside the vent. They are taught as two separate, low-complexity beats: vent first on clear
+ground, then magnet after the danger has ended beside a safe row of collectibles. This keeps the
+reintroduction level gentle while giving the levels worker one unambiguous placement.
+
+**Config.js tunables.** Add these to the existing `POWERUP` section in `src/config.js`:
 
 - `MAGNET_DURATION = 8` seconds;
 - `MAGNET_RADIUS = 192` px;
 - `MAGNET_PULL = 480` px/s;
 - `MAGNET_MAX_TARGETS = 4` simultaneous collectibles.
 
-**Introduction and teaching beat.** Introduce in Part 2 Level 1 after a low, visible row of three
-collectibles. The first two are close enough to pull immediately; the third is just outside the
-radius, teaching that the power-up is temporary and positional. A later level can put it beside a
-bonus perch, never behind a required spring landing.
+**Introduction and teaching beat.** In Level 1 — **Soglia degli Echi** — place the `V` teaching
+beat first, then place `L` after a low, visible row of three collectibles and a clean run-up. The
+first two are close enough to pull immediately; the third is just outside the radius, teaching that
+the power-up is temporary and positional. A later level can put it beside a bonus perch, never
+behind a required spring landing.
 
 **Physics, culling and colliders.** Pickups are already collider-only `collectible` objects with
 bobbing child art, not solid bodies. While the magnet is active, move only the selected pickup
@@ -115,7 +143,7 @@ chase indefinitely. A downward stomp uses the existing bounce and score rule; si
 contact uses the existing death flow. The charge should be dodgeable by a normal jump or by waiting
 out the telegraph.
 
-**Config.js tunables.** Add to `ENEMIES`:
+**Config.js tunables.** Add these to the existing `ENEMIES` section in `src/config.js`:
 
 - `CHARGER_NOTICE = 320` px;
 - `CHARGER_TELEGRAPH = 0.55` seconds;
@@ -127,11 +155,11 @@ out the telegraph.
 Keep these separate from `CRAB_SPEED` and the other existing enemy values; changing the new enemy
 must not retune Part 1.
 
-**Introduction and teaching beat.** Introduce in Part 2 Level 3 after a long flat stretch with no
-thorn or ravine in the same jump window. One charger faces Anna, flashes, and stops well before the
-next obstacle. The following encounter places one charger near a collectible, teaching “wait for
-the lunge, then jump” without requiring a stomp. Later chargers can guard optional routes, not a
-checkpoint respawn point.
+**Introduction and teaching beat.** Introduce in Level 3 — **Archivio Sospeso** — after a long flat
+stretch with no thorn or ravine in the same jump window. One charger faces Anna, flashes, and stops
+well before the next obstacle. The following encounter places one charger near a collectible,
+teaching “wait for the lunge, then jump” without requiring a stomp. The 2-HP mid-boss belongs at
+the end of this level, after the charger lesson, not inside its first teaching beat.
 
 **Physics, culling and colliders.** Use the existing `enemy` tag and invisible `area`; like crabs,
 flyers and hoppers, the charger needs no `body` and must use a data-defined flat lane plus a clamp
@@ -154,7 +182,7 @@ Its phase is deterministic per level data, so a retry teaches timing rather than
 answer. Do not chain vents into an unbroken wall, and keep the active height below the normal jump
 apex (about 148 px with the current `JUMP_FORCE`/`GRAVITY`).
 
-**Config.js tunables.** Add to `HAZARDS`:
+**Config.js tunables.** Add these to the existing `HAZARDS` section in `src/config.js`:
 
 - `VENT_PERIOD = 3.2` seconds;
 - `VENT_WARNING = 0.7` seconds;
@@ -164,11 +192,11 @@ apex (about 148 px with the current `JUMP_FORCE`/`GRAVITY`).
 
 Per-vent phase offsets and positions belong in the level data; no random phase in the critical path.
 
-**Introduction and teaching beat.** Introduce in Part 2 Level 1 after the first ordinary thorn,
-with one vent on clear ground and enough room to stop. Show the warning while Anna is still outside
-the hitbox, then let her watch one full cycle. Part 2 Level 5 can combine two offset vents with a
-charger, but the warning windows must overlap into a clear wait/jump solution rather than demand
-perfect frame timing.
+**Introduction and teaching beat.** Introduce in Level 1 — **Soglia degli Echi** — after the first
+ordinary thorn, with one vent on clear ground and enough room to stop. Show the warning while Anna
+is still outside the hitbox, then let her watch one full cycle. Level 5 — **Mare delle Stelle** —
+can combine two offset vents with a charger, but the warning windows must overlap into a clear
+wait/jump solution rather than demand perfect frame timing.
 
 **Physics, culling and colliders.** The vent is a floor-level `hazard` area with no `body`; enable
 the area only during the active state so the existing `player.onCollide("hazard")` rule handles
@@ -184,13 +212,25 @@ existing death path.
 **Market check:** A fixed cycle supports fair short sessions; if research favors return-visit
 variation, seed only optional vent patterns and keep the critical path deterministic.
 
+## Required tutorial i18n keys
+
+Add every key below to the source Italian dictionary and matching English/Russian dictionaries;
+the English glosses describe the intended beat, not a literal outside i18n. Italian wording must
+address Anna in the feminine form where grammar requires it.
+
+| Key | Tutorial use |
+| --- | --- |
+| `p2.hint.vent` | Warning flash: watch the vent, then jump or wait. |
+| `p2.hint.magnet` | The magnet pulls nearby treasures toward Anna. |
+| `p2.hint.rune` | Touch the rune to call the echo bridge. |
+| `p2.hint.bridge` | The phase bridge is fading; step off safely. |
+| `p2.hint.charger` | Wait for the flash, then jump the charge. |
+
 ## Open questions
 
-1. Should Part 2 continue the six-level numbering as Levels 7–12, or reset to Part 2 Levels 1–6?
-   This affects `MAX_LEVEL`, level-name keys, save migration and the non-playable finale transition.
-2. Should the magnet respect line of sight through `=`/`#` geometry? The low-cost proposal does
+1. Should the magnet respect line of sight through `=`/`#` geometry? The low-cost proposal does
    not raycast; if wall-through attraction feels wrong, limit its level placements first and only
    add a bounded ray test after a device measurement.
-3. Should the phase bridge ever be required for a three-star route, or remain strictly optional?
+2. Should the phase bridge ever be required for a three-star route, or remain strictly optional?
    The proposal keeps completion independent until the sequel's level review proves a safe,
    checkpointed mandatory use.

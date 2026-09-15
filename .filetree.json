@@ -1,0 +1,8 @@
+{
+  "manifest_path": "FILETREE.md",
+  "exclude": [],
+  "include": [],
+  "language": "en",
+  "commit_guard": true,
+  "self_only": false
+}

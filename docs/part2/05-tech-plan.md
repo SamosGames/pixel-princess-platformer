@@ -616,6 +616,90 @@ The new Yandex app ID belongs in release configuration/console metadata, not
 in a shared Part 1 constant. The package check must fail if the Part 2 stage
 contains a Part 1 entry, Part 1 save prefix, or Part 1 leaderboard ID.
 
+### Approved hybrid background pipeline
+
+World backgrounds use the human-approved hybrid approach. OpenRouter calls
+the selected `google/gemini` image model in a browser for source images; the
+build never calls OpenRouter and never depends on a remote image URL. Each
+accepted source is processed deterministically into four per-world parallax
+layer strips (far, mid, near, and foreground/variant), with loop seams,
+palette quantization, aerial perspective, and fixed dimensions applied by the
+Part 2 generator. The runtime consumes only those processed strips.
+
+Store the source and provenance files at:
+
+```text
+docs/part2/art/gen/openrouter/
+  generation-manifest.json       # model, prompt, cost, date, checksum, status
+  worlds/<world>/raw/*.png       # accepted raw OpenRouter outputs
+  worlds/<world>/rejected/*.json # optional metadata only; no rejected PNGs
+```
+
+Commit the accepted raw PNGs through Git LFS, with their prompt/model/cost
+records and checksums committed as normal text. Do not commit rejected
+generations or a 500–650-image scratch dump. Cap a committed raw source at 8
+MiB and the complete accepted-source LFS set at 256 MiB; rejected outputs may
+remain in the private generation cache until art sign-off. Raw sources are
+authoring evidence, not Yandex runtime files, and must never enter the static
+archive.
+
+The generation budget is 500–650 OpenRouter generations at approximately
+$0.07 each: $35.00 expected at 500, $45.50 at 650, and a $55 hard spend cap
+including a small retry/variant allowance. The manifest counter must stop the
+generation helper before the cap and record the actual spend. A source is not
+accepted merely because it is generated: it must pass the palette, seam,
+resolution, and lane-contrast checks below.
+
+Tiles, UI, mechanic icons, and ordinary sprites remain procedural or are
+derived from a small set of AI key poses. AI pose references are reduced to
+the same locked per-world palette and animation cell contract by the
+generator; no raw AI sprite or anti-aliased UI enters the archive. This keeps
+the hybrid choice visibly new while preserving deterministic, reviewable
+runtime assets.
+
+### Background memory, archive, and loading budgets
+
+The six worlds each have four base layer strips. A strip is capped at
+960×360 native pixels (RGBA decode ≈1.32 MiB), matching the long-strip layout
+in `06-art.md`. At most two small variant strips per world are allowed at
+launch; variants are not a second complete four-layer set.
+
+| Budget | Limit | Gate |
+| --- | ---: | --- |
+| Base background archive | 24 strips × 256 KiB = 6.0 MiB | Generator/package failure if exceeded |
+| World variant archive | 12 strips × 200 KiB = 2.4 MiB | Generator/package failure if exceeded |
+| All processed background files | ≤8.5 MiB, including manifests | Package report and release gate |
+| One world's resident background textures | ≤14 MiB normal; ≤28 MiB while crossfading old/new worlds | Mobile memory smoke test |
+| All decoded game images | ≤32 MiB target; ≤48 MiB hard cap | Mobile profile and browser heap sample |
+
+Load only the current world's sky metadata and four layer strips when entering
+that level. Prefetch at most the next layer segment after the first playable
+frame, release the old world's textures after a transition, and never preload
+all six worlds: the 24 base plus up to 12 variant strips would decode to
+roughly 48 MiB before sprites/UI, so that is explicitly forbidden on mobile. A
+missing or slow background must fall back to a generated
+palette gradient/strip without delaying `LoadingAPI.ready()` or level input.
+The asset manifest is small and available at boot; image payloads are
+world-scoped.
+
+### Lane-contrast build gate
+
+Every generated world composite must pass a deterministic lane-contrast gate.
+At the lane pixels sampled across the full level, including trick routes and
+both boss arenas, the lane mid-tone must differ from the backdrop behind it by
+at least **0.25 OKLCH L** (25 percentage points). Sample start/middle/end
+camera positions and the mobile downscaled composite, not just the source
+strips. Also assert that danger and echo telegraphs remain distinguishable
+from the lane at their worst sampled background.
+
+Implement this as a generator/package check (for example,
+`tools/test/art-contrast.mjs`) over the processed PNGs and level data. It must
+fail the build with world/layer/camera coordinates when the threshold is
+missed; a human screenshot review is supplementary, not the only gate. The
+check must use the same palette quantizer and composite order shipped by the
+runtime, so a background that passes in isolation cannot fail after parallax
+layers are drawn.
+
 ### Audio sources, generation, and budget
 
 Music is AI-generated in the browser with Suno/ElevenLabs. The downloaded
@@ -749,14 +833,16 @@ without a browser so they remain useful in CI.
 
 The current Part 1 package observed in this checkout is about 9.3 MB
 uncompressed (142 files; roughly 9.0 MB assets). Part 2 has its own budget; it
-does not get to borrow Part 1's archive quota at runtime. Set these release
-budgets:
+does not get to borrow Part 1's archive quota at runtime. The hybrid world
+backgrounds and wardrobe assets make the previous 15 MiB target too tight, so
+set these Part 2 release budgets:
 
-- **Target:** ≤15 MiB uncompressed for the Part 2 staged archive, including
-  generated media and JavaScript.
-- **Warning:** 12 MiB, which triggers asset review before content freeze.
-- **Backstop:** keep the existing packager's 100 MB rejection ceiling, but do
-  not treat it as a design target.
+- **Target:** ≤20 MiB uncompressed for the Part 2 staged archive, including
+  generated media and JavaScript; the background sub-budget above remains
+  ≤8.5 MiB and the audio sub-budget remains ≤4 MiB target / ≤5 MiB hard cap.
+- **Warning:** 18 MiB, which triggers asset review before content freeze.
+- **Hard content cap:** 24 MiB, excluding the packager's independent 100 MB
+  rejection ceiling. Do not treat that platform ceiling as a design target.
 - **Runtime:** 1280×720 baseline, one active Kaplay loop, no per-cell physics
   bodies for visual `=`, and no unbounded update/listener registration on
   scene restart.
@@ -768,9 +854,12 @@ the current level's boss and attacks exist. Reuse the existing culling/greedy-
 mesh behavior without culling gameplay dependencies.
 
 The package job records uncompressed bytes, compressed bytes, file count, and
-largest files. A performance smoke pass should verify stable frame time in a
-full collectible scene, an active bridge/vent scene, and each boss arena on a
-representative low-end mobile profile.
+largest files, background bytes, decoded image estimates, and audio bytes by
+music/SFX. A performance smoke pass should verify stable frame time in a full
+collectible scene, an active bridge/vent scene, and each boss arena on a
+representative low-end mobile profile. It must capture normal and transition
+texture memory and fail if the 32 MiB target / 48 MiB hard image budget is
+exceeded.
 
 ## Milestones and task sizes
 

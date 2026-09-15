@@ -27,6 +27,8 @@ movement system.
 - Keep the Yandex release static and playable without the SDK: no mechanic may require a server,
   network round-trip or non-Yandex runtime. Existing cloud-save, ads and leaderboard integration
   remain behind the platform adapter; local fallback must still allow a complete run.
+  Market check: this section adds no new ad gate or paid power; reconcile any rewarded-ad/meta
+  recommendation with the existing continuation flow instead of making a mechanic mandatory.
 - Every player-facing label, hint and tutorial beat gets IT/EN/RU dictionary keys. Italian copy is
   feminine and warm: this is still a gift for Anna. The finale keeps its existing
   `CLASSIFICA → SCONTRINO` closing order; these mechanics do not belong in `finale.js`.
@@ -67,6 +69,9 @@ correct; the bridge set is tiny and its off-screen timer is just a scalar update
 particles. This is the only new geometry/state mechanic: it creates route planning while preserving
 the existing jump arc and semisolid rules.
 
+**Market check:** The optional mastery route and short activation window are retention-sensitive;
+compare the research's event/meta cadence before adding daily variants or extending the timer.
+
 ## 2. Coccoline magnet — optional power-up
 
 **Behaviour.** An `L` pickup attracts nearby ordinary level collectibles for a short time. Items ease
@@ -97,6 +102,9 @@ must use nearby `collectible` objects rather than a whole-world search every fra
 **Mobile cost and justification.** One aura plus a bounded squared-distance scan of at most four
 items per frame. No particles, raycasts or new bodies. It gives the sequel a collectible decision
 that is useful to Anna without changing the proven physics or making completion easier by force.
+
+**Market check:** This is intentionally a collection-completion/replay reward, not a monetized
+advantage; reconcile its placement with the research's rewarded-ad and meta-progression findings.
 
 ## 3. Charger — readable ground enemy
 
@@ -135,6 +143,9 @@ consistent. Its AI may still update while hidden, so it should remain idle unles
 instance; at most three active instances. It adds anticipation and a new enemy silhouette without
 introducing pathfinding, terrain queries or another gravity model.
 
+**Market check:** Deterministic telegraphs favor low-frustration mobile retention; compare the
+research before increasing failure pressure or tying retries to monetization.
+
 ## 4. Steam vent — telegraphed floor hazard
 
 **Behaviour.** A `V` vent cycles through dormant, warning and active states. The warning is a short
@@ -169,6 +180,9 @@ phase is acceptable and avoids spawning effect objects.
 **Mobile cost and justification.** One area, one update timer and one generated plume sprite per
 vent; no per-frame particles. It adds a readable wait-versus-jump hazard and reuses the safest
 existing death path.
+
+**Market check:** A fixed cycle supports fair short sessions; if research favors return-visit
+variation, seed only optional vent patterns and keep the critical path deterministic.
 
 ## Open questions
 

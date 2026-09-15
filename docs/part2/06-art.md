@@ -438,10 +438,11 @@ downloaded.
 > segments) and Anna's reference sheet + idle/run grid.
 
 Note on downsampling: the brief says "nearest downsample". The design keeps nearest-neighbour
-for **every integer upscale and runtime draw**, but reduces raw ChatGPT images by **area average
-per target cell, then nearest-colour palette quantization**. A raw generation has no pixel grid,
-so nearest-sampling it picks arbitrary anti-aliased pixels and changes with a 1 px crop shift.
-Averaging each cell first makes the result stable and still fully deterministic (§4.1, §4.2).
+for **every integer upscale and runtime draw**, but reduces raw ChatGPT images differently. Each raw pixel is **snapped to the palette first**,
+then each target cell takes the **majority vote of the raw pixels in its centre**; the opaque sky
+uses an area average plus ordered dither. A raw generation has no pixel grid, so nearest-sampling
+it picks arbitrary anti-aliased pixels and changes with a 1 px crop shift. Voting is stable,
+keeps thin lines better than averaging (measured in §4.2), and is still fully deterministic.
 
 ### 4.0 Procedural vs ChatGPT vs hybrid — for the human to choose in `review.html`
 
@@ -471,8 +472,8 @@ deterministic answer:
 
 | Variance | Cause | Deterministic fix |
 | --- | --- | --- |
-| Not on a pixel grid; anti-aliasing | The model paints continuous images; "pixel art" is a style, not a grid | Never nearest-sample the raw image. **Area-average** into the target cells, then **palette-quantize** (§4.2) |
-| Palette drift between calls | No colour constraint in generation | Quantize to the **locked world hex palette** in OKLab; the palette file is source |
+| Not on a pixel grid; anti-aliasing | The model paints continuous images; "pixel art" is a style, not a grid | Never nearest-sample the raw image: snap raw pixels to the palette, then **majority-vote in each cell's centre** (sky: area average + ordered dither) (§4.2) |
+| Palette drift between calls | No colour constraint in generation; neighbouring ramp shades sit a few % apart | **Per-segment affine colour calibration** fitted on interior (non-boundary) pixels, then quantize to the **locked world hex palette** in OKLab; the palette file is source |
 | Proportion / identity drift | Each call re-imagines the character | One approved reference sheet attached to every call; pose grids generated **as edits**; the build normalizes scale by head height and rejects outliers |
 | Background seams, horizon and light drift between segments | Outpainting re-renders the overlap | Registration on the overlap band, horizon row lock, minimum-error seam cut (§4.4) |
 | Cut-out halos | Soft edges blending into the background | Flat **magenta `#ff00ff`** background, OKLab key + despill, binary alpha for sprites |
@@ -485,25 +486,62 @@ For every source PNG in `art/src/<world|character>/<name>.png` with `<name>.prom
 
 1. **Decode**: `png-read.mjs` on `node:zlib`, keeping the no-dependency rule of `px.mjs`.
    Downloads must be PNG; a WebP download is converted once at import and the PNG is committed.
-2. **Key out** magenta (OKLab distance ≤ threshold) and despill the edge ring toward the
-   neighbour colour. Sprites get binary alpha (≥50%); near/foreground layers get binary alpha;
-   far and mid layers are opaque.
+2. **Key out** magenta: hard key below an OKLab distance threshold. Soft-ring pixels are
+   un-mixed as `p = α·c + (1−α)·key`, with `c` taken from the nearest solid pixel, so the pixel
+   gets colour `c` and alpha `α`. (Estimating α from the green deficit fails on violet palettes,
+   where real colours already have r, b > g.) Only the sky is opaque. Far, mid, near and foreground layers are cut out
+   with binary alpha (≥50%) like sprites, since each parallax layer must show the one behind it.
 3. **Crop** to content (sprites: per detected blob, sorted by grid position).
 4. **Normalize** (characters): scale so the head height matches the reference ratio; anchor the
    feet on the cell baseline; reject if the silhouette width deviates >12% from the reference
    pose.
-5. **Downsample by area average** to the target size: 32×48 per heroine cell, 32×32 tile kit
-   cells, native-×1 background strips (height 240/180/120 by layer).
-6. **Quantize** in OKLab to the locked palette:
-   - sprites/tiles: nearest colour, no dither, then a 3×3 majority clean-up of isolated pixels;
-   - backgrounds: 2×2 Bayer ordered dither against the 32-colour extension (keeps soft
-     shading; ordered, never error diffusion, so the output is stable).
+5. **Calibrate colour** per image or segment: a per-channel affine map (gain, offset), fitted
+   only on interior pixels whose 3×3 neighbourhood is flat. Cluster centres are matched to palette
+   entries with equal weight per entry. Boundary pixels are mixtures; including them collapses
+   the fit toward low contrast, which the first prototype did (gain hit its clamp).
+6. **Downsample + quantize** to the target size (32×48 per heroine cell, 32×32 tile kit cells,
+   native-×1 strips of height 240/180/120 by layer):
+   - sprites, tiles and cut-out layers: **quantize-then-vote**. Snap each raw pixel to the
+     palette in OKLab, then take the most-voted palette colour among raw pixels in the central
+     60% of the cell. Alpha is the cell's opaque coverage (≥50%). For sprites, follow with a 3×3
+     majority clean-up of isolated pixels;
+   - opaque sky: area average, then 2×2 Bayer ordered dither against the 32-colour extension
+     (keeps soft shading; ordered, never error diffusion, so the output is stable).
 7. **Finish**: 1 px `#24172e` outline on sprites; aerial-perspective blend on layers; `_flash`
    silhouette frames; look-layer extraction (§3.9).
 8. **Stitch and loop** backgrounds (§4.4), then slice into ≤960-native-wide pieces.
 9. **Pack and write** `assets/` and a manifest recording every source file's SHA-256 and the
    config hash.
 10. **Validate** (§4.5); fail the build on violation.
+
+**Prototype evidence (throwaway code outside the repo; NOT a ChatGPT test).** Input was the real
+Part 1 `castle_mid.png` degraded to look like a generation: native 480×120 art tiled to 1.25
+periods, bilinear-rescaled ×3.2 (no pixel grid), blurred, noise, JPEG q88, colour drift, halos
+blended into `#FF00FF`, split into two "extend-right" segments with a 288 px overlap, a +3 px
+vertical shift and +2% brightness on the second. Results against the true native art:
+
+| Step | Result |
+| --- | --- |
+| Registration (coarse ¼ scale, then ±8 px) | overlap 288 px and dy 3 recovered exactly |
+| Loop cut | 480 native px, exactly the true period; wrap-edge difference 25 vs 99.7 mean adjacent-column difference (no visible seam) |
+| Alpha | 99.5% agreement |
+| Exact colour, average-then-quantize | 90.4% |
+| Exact colour, + neighbour un-mix key-out | 90.4% (seam cost 4.85 → 1.85, colours unchanged) |
+| Exact colour, quantize-then-vote | 92.1% |
+| Exact colour, + interior-pixel calibration | **92.7%** |
+| Remaining errors | 100% on 1-px boundaries between two adjacent shades of one ramp (`#402933` → `#4e323e`) |
+| Slicing | 1920-wide strip → 2 × 960 |
+| Determinism | two full runs → identical SHA-256; 0.2–0.4 s per layer |
+
+Viewed side by side at ×3, the processed strip also **loses isolated 1-px highlights**: the lamp
+sparks and the "+" banner emblems are gone, while silhouettes, pillars and banners survive. Point
+lights and tiny emblems therefore aren't recovered from generated backgrounds; they're placed as
+procedural glow/prop sprites (§3.6) or committed as a `<name>.fix.png` overlay.
+
+The residual error is sub-grid detail that no reduction can recover from an image without a
+pixel grid. For sprites the outline pass re-draws it; for backgrounds it's invisible at play
+distance. What it does **not** prove: real ChatGPT seams, horizon drift, or character drift.
+Those remain **not tested — pending real generations**.
 
 Run twice, diff zero bytes: a CI check. `assets/` stays 100% generated, and the
 "never hand-edit `assets/`" rule stays honest. Raw ChatGPT PNGs plus their prompts are the

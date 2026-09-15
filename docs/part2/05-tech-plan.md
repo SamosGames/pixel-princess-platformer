@@ -16,6 +16,11 @@ the Part 1 release. It has:
 - its own native Yandex leaderboard; and
 - a separate Part 2 entry point and release configuration.
 
+The implementation lives in the private `SamosGames/pixel-princess-2`
+repository, copied from this repository's `main` with full history and
+registered as a separate AO project. The repository boundary is part of the
+release contract, not merely a packaging convention.
+
 The engine may be reused, but Part 2 must not import Part 1 level data, save
 keys, leaderboard IDs, or progression state. Part 1 remains canon backstory
 only.
@@ -56,50 +61,90 @@ reachable key, and logical goal must preserve the softlock-proof rules in
 > adding any cross-title promotion or unlock promise; cross-title progression
 > is not a technical requirement and is forbidden by this release boundary.
 
-## Repository and entry-point strategy
+## Repository strategy and engine synchronization
 
-### Recommendation: shared engine modules plus a second entry
+### Decision: separate private repository, copied with full history
 
-Use one repository with a sibling Part 2 app boundary and a small shared
-engine layer. The suggested shape is:
+The sequel lives in the new private repository
+`SamosGames/pixel-princess-2`, created as a copy of this repository's `main`
+with full Git history. It is registered as a separate AO project. The copy is
+the Part 2 release boundary: it has one Part 2 entry, one `package:yandex`
+target, one app ID, one save namespace, and one native leaderboard. It is not
+a second entry hidden inside the Part 1 repository.
+
+The copy should converge on a simple Part 2-only working tree:
 
 ```text
 src/
-  shared/                 # pure Kaplay/engine/platform utilities only
-  part1/                  # existing title boundary, unchanged by Part 2
-  part2/
-    main.js               # second application entry
-    config.js             # Part 2 gameplay source of truth; MAX_LEVEL=7
-    state.js              # Part 2-only state and storage namespace
-    levels/                # level1.js ... level6.js, build.js, mapkit.js
-    scenes/                # menu, game, finale for the Part 2 app
-    i18n/                  # IT/EN/RU dictionaries for Part 2
-    assets/                # Part 2 generated output/manifest
+  engine/                 # reusable Kaplay/player/platform primitives
+  levels/                 # Part 2 level1.js ... level6.js, build.js, mapkit.js
+  scenes/                 # Part 2 menu, game, and level-7 finale
+  i18n/                   # Part 2 IT/EN/RU dictionaries
+  config.js               # Part 2 source of truth; MAX_LEVEL=7
+tools/gen/               # shared generator code plus Part 2 inputs
+assets/                  # Part 2 generated output only
 ```
 
-The current flat Part 1 paths can stay as the compatibility boundary while
-shared utilities are extracted only when a Part 2 caller needs them. Do not
-move or rename Part 1 files as part of the first Part 2 milestone.
+Keep the full history; do not rewrite it to erase Part 1 commits. The
+following Part 1 material is stripped from the **new repository's working
+tree** after the copy:
 
-The alternative is a full repository fork. A fork gives maximal file-level
-isolation, but duplicates Kaplay/platform fixes, generator behavior, and
-mobile test maintenance. The shared-module/second-entry option is preferred
-because it keeps those fixes aligned while still producing two independent
-archives. It is safe only with these boundaries:
+- Part 1 level maps, world names, level-specific map fixtures, and Part 1-only
+  scene copy. Keep generic `build.js`/`mapkit.js` logic only where it is still
+  used by Part 2.
+- Part 1 generated backgrounds, sprites, audio, manifests, and asset references.
+  Preserve generator primitives and replace their inputs with the six Part 2
+  worlds, mechanics, and two bosses.
+- Part 1 i18n content and keys. Keep a shared key/formatting utility only if
+  useful, then replace the dictionaries with the Part 2 IT/EN/RU set.
+- The legacy `api/leaderboard.js` Vercel serverless leaderboard, which is not
+  part of the native Yandex-board architecture.
+- Vercel deployment material: `.vercel/`, Vercel project/config files, and
+  `tools/deploy.mjs` or package scripts that publish the old endpoint. The
+  Part 2 release is a static Yandex archive and has no server deploy.
 
-1. `src/part2/main.js` owns Part 2 scene registration and never calls the Part
-   1 entry point.
-2. Part 2 injects its own config, state, dictionaries, asset manifest, app ID,
-   and leaderboard ID.
-3. Shared modules contain mechanics/adapter primitives, not Part 1 level
-   numbers, save keys, world names, or completion data.
-4. `package:yandex` accepts an app target and stages only that target's entry,
-   HTML, generated assets, and runtime modules. Part 1 packaging output is
-   unchanged.
+Deletion from the new working tree does not delete those files from its full
+Git history. Do not copy old Part 1 save prefixes, global leaderboard IDs, or
+Part 1-only tests back into the Part 2 runtime while doing this cleanup.
 
-If the two titles later require incompatible engine behavior or independent
-release ownership, make the fork then. Forking now would make the current
-small Kaplay engine pay the maintenance cost before that divergence exists.
+### Recommended sync policy: upstream remote plus selective cherry-picks
+
+Use the remotes below in the Part 2 AO project:
+
+```text
+origin   -> git@github.com:SamosGames/pixel-princess-2.git
+upstream -> git@github.com:SamosGames/pixel-princess-platformer.git
+```
+
+Keep `upstream/main` as the Part 1 engine reference and keep the sequel's
+`origin/main` as the Part 2 release branch. Do not merge all of upstream: that
+would reintroduce Part 1 levels, assets, dictionaries, Vercel files, and the
+legacy API. Instead:
+
+1. Land an engine/platform fix in the Part 1 repository as a small, focused
+   commit with an `engine:`, `platform:`, `mobile:`, or `build:` prefix. Keep
+   content and title-specific changes in separate commits.
+2. From the sequel repo, run `git fetch upstream`, inspect the diff, and
+   cherry-pick only the approved engine commit(s) onto a short-lived
+   `engine-sync/<date>` branch. Resolve path conflicts against Part 2 config
+   and content, then run the Part 2 suite and package check.
+3. Merge the sync branch into the sequel's main/release branch through the
+   separate AO workflow. Record the upstream SHA in the sync commit message
+   and changelog so the two repos can be audited.
+4. If a fix originates in Part 2 but is useful to Part 1, first extract it to
+   a content-free commit and apply it upstream; do not make the Part 1 repo
+   depend on the sequel repo.
+
+Use this selective cherry-pick policy rather than a shared package or
+automatic subtree merge: the engine is small, the titles need independent
+release control, and explicit review prevents content leakage. Sync before a
+Part 2 release and on a regular review cadence; never force-push either
+repository's shared branch.
+
+> **Market check:** Independent release ownership protects the sequel's
+> onboarding and page experiments from Part 1 release timing. Keep engine
+> fixes synchronized for quality, but do not couple the titles' content or
+> live-ops cadence while the market results are still being measured.
 
 ## Part 2 runtime and level registration
 
@@ -278,8 +323,9 @@ existing Yandex adapter boundary and native API path.
 
 The Part 2 asset pipeline should reuse the existing deterministic generator
 utilities (`tools/gen/index.mjs` and its world/character/background/audio
-helpers) while writing a Part 2 manifest/output directory. Generated files,
-not hand-edited images, are the source of truth.
+helpers) in `SamosGames/pixel-princess-2`, while writing a Part 2
+manifest/output directory. Generated files, not hand-edited images, are the
+source of truth.
 
 Pipeline additions:
 
@@ -294,15 +340,52 @@ Pipeline additions:
    Part 2 page depend on the Part 1 page or an external asset URL.
 4. Make generation deterministic and review the manifest diff. The generated
    output is disposable; the manifest and generator input are committed.
-5. Extend `tools/package-yandex.mjs` with an explicit target such as
-   `--app part2`. The release command is then `npm run package:yandex --
-   --app part2`, producing a Part 2-only archive with its own `index.html`,
-   entry, asset manifest, app metadata, and leaderboard configuration. The
-   default Part 1 package target must remain unchanged.
+5. Keep `tools/package-yandex.mjs` as the Part 2 repo's single release target.
+   `npm run package:yandex` must produce a Part 2-only archive with its own
+   `index.html`, entry, asset manifest, app metadata, and leaderboard
+   configuration. There is no Part 1 package target in this repository.
 
 The new Yandex app ID belongs in release configuration/console metadata, not
 in a shared Part 1 constant. The package check must fail if the Part 2 stage
 contains a Part 1 entry, Part 1 save prefix, or Part 1 leaderboard ID.
+
+### Audio sources, generation, and budget
+
+Music is AI-generated in the browser with Suno/ElevenLabs. The downloaded
+files are the source masters: keep them in a documented Part 2 source-audio
+directory with provider, generation date, prompt/track ID, and usage-rights
+metadata. Do not make the Yandex archive fetch music from Suno, ElevenLabs, or
+any other external URL. Export loopable archive tracks from those downloaded
+masters and keep the masters out of the archive.
+
+SFX remain deterministic and code-generated through
+`tools/gen/audio.mjs` (currently WAV, 22050 Hz, mono). Add the Part 2 vent,
+bridge, charger, magnet, boss, and finale cues to that synthesis path rather
+than hand-editing individual effects. A generator test must catch a missing
+cue or a changed sample format.
+
+Use these release audio limits:
+
+- **Music format:** stereo MP3 at 96 kbps CBR, with loop points documented in
+  the manifest. This is the compatibility-oriented archive format; downloaded
+  AI masters may remain WAV/MP3 at their original quality outside the archive.
+- **SFX format:** PCM WAV, 22050 Hz, 16-bit, mono, matching
+  `tools/gen/audio.mjs`; short cues are preferable to compressed decode work
+  during a jump or stomp.
+- **Archive budget:** all Part 2 audio in the staged Yandex archive is ≤4 MiB
+  target and ≤5 MiB hard cap: music ≤3 MiB and generated SFX ≤1 MiB, with the
+  remaining 1 MiB allowance covering metadata or a rare exception. The
+  package check reports music bytes, SFX bytes, and total audio bytes
+  separately.
+- **Loading:** load the menu track at menu entry, load a level track when that
+  level starts, release the previous level track, and load finale music only
+  when entering level 7. Do not preload all six world tracks, menu music,
+  finale music, and boss cues at boot.
+
+> **Market check:** AI music can make the sequel feel distinctive, while large
+> tracks increase first-session cost. Preserve a recognizable theme and let
+> the archive/load measurements—not a larger soundtrack by default—decide
+> whether additional tracks are worth shipping.
 
 > **Market check:** Reusing generator primitives lowers download cost and
 > preserves the gift's visual language; new world and boss art still carry
@@ -342,17 +425,19 @@ missing gameplay key.
 
 ## Test plan
 
-Keep test execution explicit about the app under test. In a shared repository,
-retain the existing Part 1 checks as `test:part1`, add `test:part2`, and make
-the top-level `npm test` run both. This prevents a green Part 1 suite from
-being mistaken for Part 2 coverage while preserving the familiar command.
+Keep test execution explicit about the app under test. In the separate
+`SamosGames/pixel-princess-2` repository, `npm test` runs the Part 2 suite only;
+the copied Part 1 tests are either removed with their content fixtures or
+rewritten for the Part 2 registry. Engine-sync branches may run a focused
+upstream regression suite before cherry-pick, but the sequel's release gate is
+always its own suite.
 
 Add focused Part 2 fixtures/checks to the existing platform, browser, feature,
 level, boss, and i18n test patterns:
 
 | Area | Part 2 assertions |
 | --- | --- |
-| App/package identity | Part 2 entry boots with the new app ID/config; the staged archive has its own index and contains no Part 1 entry, save key, or board ID. |
+| App/package identity | Part 2 entry boots with the new app ID/config; the staged archive has its own index and contains no Part 1 entry, save key, board ID, legacy API, or Vercel deploy material. |
 | Level registry | Exactly levels 1–6 build; names and order match the locked table; level 7 routes to finale and never to `buildLevel`. |
 | Legend/maps | `L` and `V` occur in level 1, `R` and `~` in level 2, `C` in level 3; `~` is not permanent solid; unknown tokens fail loudly. |
 | Geometry | Critical-path gaps are ≤2 cells, no double-jump path is required, and every spring landing is on `#`, not `=`. |
@@ -362,23 +447,25 @@ level, boss, and i18n test patterns:
 | Part 2 cloud merge | Same-app local/cloud union is deterministic, idempotent, monotonic for completion/best times, rejects malformed data, and tolerates offline/API failure. |
 | Leaderboard/finale | Only the Part 2 board ID is submitted; submission failure does not block the level 7 finale; leaderboard opens before the receipt. |
 | i18n | IT/EN/RU key sets and placeholders match; exact world/boss strings exist; Italian copy passes feminine-agreement review; long strings fit mobile layouts. |
-| Package/perf | `npm run package:yandex -- --app part2` succeeds, reports archive size and file count, and excludes Part 1-only files. |
+| Package/perf | `npm run package:yandex` succeeds, reports archive size/file count/audio bytes, and excludes Part 1-only files. |
+| Audio | Downloaded AI music masters have provenance metadata; archive music is MP3/96 kbps, SFX are generated PCM WAV/22050 Hz mono, audio stays within the 4 MiB target/5 MiB cap, and only the current music track is loaded. |
 | Mobile | Part 2 menu/start/resume/new-save flow, language/settings, pause/retry, touch controls, viewport/rotation, level transitions, and both boss arenas smoke-test at narrow and wide mobile sizes. |
 
 The top-level scripts should be shaped like this (names are a plan, not a
 code change in this section):
 
 ```text
-npm test                  -> Part 1 suite + Part 2 suite
-npm run test:part2        -> platform + smoke + features + levels + boss + i18n
-npm run test:mobile       -> Part 1 mobile suite + Part 2 mobile suite
-npm run test:mobile:part2 -> Part 2 mobile checks only
+npm test            -> platform + smoke + features + levels + boss + i18n
+npm run test:mobile -> Part 2 mobile checks only
+npm run package:yandex -> Part 2-only static archive
 ```
 
 Add a Part 2 browser fixture for the two boss loadouts rather than relying on
 one generic “boss exists” assertion. Add a package fixture that scans the
-archive for forbidden Part 1 identifiers. Keep deterministic map and contract
-tests runnable without a browser so they remain useful in CI.
+archive for forbidden Part 1 identifiers and Vercel/API files. Add an audio
+fixture that validates format, bitrate, total archive bytes, and lazy-load
+manifest behavior. Keep deterministic map, contract, and audio tests runnable
+without a browser so they remain useful in CI.
 
 ## Performance and archive budget
 
@@ -414,18 +501,19 @@ implementation estimates, not promises.
 
 | Phase | Deliverable | Size | Depends on |
 | --- | --- | ---: | --- |
-| M0 — boundary/contracts | Confirm new Yandex app/board placeholders, Part 2 entry/config/state interfaces, `MAX_LEVEL=7`, archive isolation, and the locked level/boss/token matrix. | S (1–2 days) | — |
-| M1 — second entry/package | Add the sibling Part 2 entry, target-aware `package:yandex`, own manifest staging, and boot/menu/scene wiring without changing Part 1 output. | M (2–3 days) | M0 |
+| M0 — repo boundary/contracts | Register the new private AO project, copy `main` with full history, strip Part 1 working-tree content/legacy API/Vercel deploy, and confirm the Part 2 entry/config/state interfaces, `MAX_LEVEL=7`, archive isolation, and locked level/boss/token matrix. | M (2–4 days) | — |
+| M1 — engine sync/package | Configure `origin`/`upstream`, establish the focused cherry-pick policy, make `package:yandex` Part 2-only, and boot the copied repo with its own menu/scene wiring. | M (2–3 days) | M0 |
 | M2 — fresh save/cloud | Implement Part 2-only local/cloud namespace, validation, same-app merge, retry behavior, and isolation fixtures; explicitly omit Part 1 migration. | M (2–3 days) | M0, M1 |
-| M3 — engine contracts | Add builder dispatch for `L`, `V`, `R`, `~`, `C`, config-driven tuning, and both `makeBoss` loadouts with softlock tests. | L (4–6 days) | M0, M1 |
+| M3 — engine contracts | Add builder dispatch for `L`, `V`, `R`, `~`, `C`, config-driven tuning, lazy audio loading, and both `makeBoss` loadouts with softlock tests. | L (4–6 days) | M0, M1 |
 | M4 — six level data | Port/author levels 1–6 under the locked world names, place mechanics in their required introduction levels, and prove geometry/goal routes. | L (5–8 days; each level M) | M3 |
-| M5 — generated presentation | Add Part 2 backgrounds, mechanic/boss/finale art, animation metadata, audio/manifest inputs, and deterministic generation checks. | M (3–4 days) | M1, M4 |
+| M5 — generated presentation/audio | Add Part 2 backgrounds, mechanic/boss/finale art, AI-music source metadata, SFX synthesis inputs, animation metadata, audio/manifest inputs, and deterministic generation checks. | M (3–5 days) | M1, M4 |
 | M6 — i18n/leaderboard/finale | Add IT/EN/RU Part 2 keys, feminine Italian review, own native board wiring, level 7 finale order, receipt, and offline fallback. | M (2–3 days) | M2, M4, M5 |
-| M7 — release verification | Run `npm test`, mobile checks, package isolation/size checks, low-end performance smoke, and Yandex staging smoke with the new app ID. | L (3–5 days) | M1–M6 |
+| M7 — release verification | Run `npm test`, mobile checks, package isolation/size/audio checks, low-end performance smoke, engine-sync audit, and Yandex staging smoke with the new app ID. | L (3–5 days) | M1–M6 |
 
 The critical path is M0 → M1 → M3 → M4 → M6 → M7. M2 and M5 can run in
-parallel once the entry boundary is stable, but M7 must not start until the
-app ID, native board, archive target, and fresh-save behavior are confirmed.
+parallel once the copied repo boundary is stable, but M7 must not start until
+the app ID, native board, archive target, fresh-save behavior, and upstream
+engine-sync policy are confirmed.
 
 ## Open questions
 
@@ -434,9 +522,6 @@ These do not reopen locked canon:
 - What numeric Yandex app ID and exact console leaderboard ID will be assigned
   to Part 2? The code should use release-config placeholders until console
   provisioning is complete.
-- Should the packager expose `--app part2` on `package:yandex` or provide a
-  thin `package:yandex:part2` alias? Either path must invoke the same packager
-  and produce only the Part 2 archive.
 - What is the mid-boss's final display name and portrait treatment? Its
   contract remains `p2.mid`, 2 HP, end of level 3, and `G`/`makeBoss`.
 - Which Part 2-generated assets can share source primitives while staying in

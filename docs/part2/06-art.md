@@ -1,10 +1,28 @@
 # Part 2 — Art direction
 
-Design doc and mockups only. No game code, generator module or `assets/` file changed. Goal from the
-brief: Part 2 must look **noticeably better** than Part 1 while keeping the invariants in
-`CLAUDE.md`: generated assets only, the mobile render path, culling and greedy-meshed colliders.
+**Status: pending human approval.** Nothing here is final until the human signs off on the
+review page (§9). No game code, generator module or `assets/` file changed.
 
-Deliverables in `docs/part2/art/`:
+Goal from the brief: Part 2 must look **noticeably better** than Part 1 while keeping the
+invariants in `CLAUDE.md`: generated assets only, the mobile render path, culling and
+greedy-meshed colliders.
+
+Direction changes folded in:
+
+- **Asset source is ChatGPT image generation** (decided by the human), made usable by a
+  deterministic `tools/gen` processing step (§4).
+- **Backgrounds are the priority**: long, multi-segment parallax layers (§3.4, §4.4).
+- **Scope addition after market research**: wardrobe meta, opt-in rewarded boosts, trick
+  moments, weekly time trial, cosmetic IAP (§3.9, §3.10).
+
+> **Blocked, not tested:** no ChatGPT image exists in this branch yet. This worker has no
+> control of the human's logged-in Chrome: the claude-in-chrome MCP is not configured in the
+> session, and the Kapture MCP has no connected extension. `docs/part2/art/gen/`,
+> `pipeline-demo.png`, the composites and `review.html` wait for that access (§9). Every
+> mockup below is **painted in code** as a layout and colour target, not as the final
+> rendering quality.
+
+Deliverables in `docs/part2/art/` today:
 
 | File | What it is |
 | --- | --- |
@@ -14,15 +32,15 @@ Deliverables in `docs/part2/art/`:
 | `mockup-level1.png` | Target look: Level 1, Soglia degli Echi, gameplay frame |
 | `mockup-boss.png` | Target look: Level 6 arena, La Dama dell'Eco, debris telegraph |
 | `mockup-menu.png` | Target look: menu and world select |
+| `mockup-wardrobe.png` | Wardrobe/shop: slots, look states and prices, layered preview, opt-in try-on |
+| `mockup-tricks.png` | Four trick-moment telegraphs + the two rewarded-offer surfaces |
 | `mockup-heroine-palettes.png` | Part 1 vs Part 2 heroine resolution, 6 poses, 6 world palettes, frame budget |
 | `compare-level1.png` | Part 1 Level 1 next to the Part 2 Level 1 mockup |
 | `mockups.mjs` | The script that paints every mockup (`node docs/part2/art/mockups.mjs`) |
 
-The mockups are **painted in code** on `tools/gen/px.mjs`: the same RGBA buffers, deterministic
-`rng`, Bayer dither, `outline` and integer `upscale` the real generator uses. That is the point.
-Every effect in them (dithered glows, hue-shifted ramps, echo after-images, autotile edge caps,
-9-slice panels) can be baked by a deterministic build. They are not in-engine captures: nothing
-in them was measured for frame rate. The 5×7 bitmap font is a mockup stand-in (see §3.8).
+The mockups run on `tools/gen/px.mjs` (RGBA buffers, deterministic `rng`, Bayer dither,
+`outline`, integer `upscale`), so the palette, layout, telegraph and layering rules they show
+are ones the build can enforce. The 5×7 bitmap font is a mockup stand-in (§3.8).
 
 ---
 
@@ -44,7 +62,7 @@ code (`tools/gen/*`, `src/config.js`, `src/animspec.js`) and from a draw-call sa
 | Tiles | One 12-frame 16px atlas in **neutral grey**, multiplied by `theme.solid` at runtime | `world.mjs`, `build.js` |
 | Collectibles, enemies | 12×12 collectibles and 16×10 crab, 6-frame strips; heart and hopper are 1 frame | `WORLD_SHEETS` |
 | Boss | Kaplay primitives: rounded `rect`, two triangle horns, circle eyes | `makeBoss`, `build.js:514` |
-| Backgrounds | 3 layers (sky fixed, mid ×0.5, near ×0.8), one flat tone per silhouette layer | `backgrounds.mjs`, `game.js:798` |
+| Backgrounds | 3 layers (sky fixed, mid ×0.5, near ×0.8), one flat tone per silhouette layer, 1920 px wrap | `backgrounds.mjs`, `game.js:798` |
 | Particles | `k.circle` motes, bubbles and snow; `k.rect` confetti and dust; each an object with its own `onUpdate` | `game.js`, `juice.js` |
 | Juice | squash/stretch (`player.js`), hit-stop, `k.shake`, dust puffs, confetti, CSS fade between scenes | `juice.js`, `ui/transition.js` |
 | Measured cost | 20–26 draw calls, 550–616 objects, 157–220 visible after culling (desktop and iPhone profile, L1–L6) | draw-call sample |
@@ -57,127 +75,105 @@ code (`tools/gen/*`, `src/config.js`, `src/animspec.js`) and from a draw-call sa
    430/720) she is ~38×57 CSS px, so the face is a few blocks. On the menu she is scaled ×1.9 on
    top of ×4 and turns into large blocks (`current-desktop-menu.png`).
 2. **Too few animation frames.** Jump, fall, land and hurt are single frames, and the six
-   collectibles all share one spin. Movement reads as a sprite sliding between poses.
+   collectibles all share one spin.
 3. **Tint-multiplied tiles make every world the same shape and a muddy colour.** A multiply
    tint can only darken, and it can't shift hue along the ramp. Level 3 is maroon ground on a
    maroon sky, and the heroine and banners sink into it (`current-desktop-level3.png`). Level 6
-   is flat grey gravel (`current-desktop-boss.png`). All six worlds use the same 12 tile shapes.
+   is flat grey gravel (`current-desktop-boss.png`).
 4. **Weak edge/autotile vocabulary.** There are only L/R caps and 2 top variants: no inner
-   corners, no underside, no terrace-to-floor transition. A ravine is a rectangle cut out of
-   speckle (`current-desktop-level1.png`, right side).
-5. **Flat parallax.** Mid and near layers are single-tone silhouettes. There is no aerial
-   perspective, no foreground layer, and the upper 60% of the forest screen is empty sky with
-   dots. Depth comes only from scroll speed.
+   corners, no underside, no terrace-to-floor transition.
+5. **Flat, short parallax.** Mid and near layers are single-tone silhouettes repeating every
+   1920 px. There is no aerial perspective and no foreground, and the upper 60% of the forest
+   screen is empty sky with dots.
 6. **Mixed rendering styles.** Chunky ×4 pixel art sits next to anti-aliased vector
-   primitives: the rounded-rect boss with a thick vector outline, circle bubbles and motes, and
-   flat CSS-looking pillars in the finale (`current-desktop-finale.png`). This mismatch, more
-   than resolution, makes Part 1 look like a prototype.
-7. **No lighting.** Lanterns, the moon and the portal emit nothing. Nothing in the palette
-   says "light source here".
-8. **Hazard readability.** Level 1 brambles and Level 2 urchins are dark lumps with no bright
-   warning colour, and they read as decor. Collectibles in Level 6 are low-contrast discs.
-9. **HUD is plain stacked text in two fonts.** It uses the pixel font for the name and system
-   sans-serif for numbers, plus emoji icons (🍎 💎 🏆) drawn by the OS font, so the HUD looks
-   different on every device. There is no panel. Tutorial text is drawn over the heroine and
-   enemies (`current-desktop-level1.png`), and the chapter title is printed over the moon and
-   over the boss (`current-desktop-boss.png`).
+   primitives: the rounded-rect boss, circle bubbles and motes, and flat pillars in the finale
+   (`current-desktop-finale.png`).
+7. **No lighting.** Lanterns, the moon and the portal emit nothing.
+8. **Hazard readability.** Level 1 brambles and Level 2 urchins are dark lumps with no warning
+   colour, and they read as decor.
+9. **HUD is plain stacked text in two fonts** plus OS-drawn emoji icons, with no panel.
+   Tutorial text is drawn over the heroine, and the chapter title over the moon and the boss.
 10. **Russian — the primary market — never sees the pixel font.** `uiFont()` switches any
-    Cyrillic string to `sans-serif` (`src/i18n/index.js:103`) because the vendored
-    `PixelifySans.woff2` (7.5 KB) covers Latin-1 only. The RU build therefore has a generic
-    system-font UI over pixel art.
-11. **Menu and finale lack structure.** The menu is controls floating over a backdrop. The
-    finale is flat lilac with rectangle pillars and a large letter card covering the scene.
-12. **Mobile framing.** In emulation the letterbox bars are light blue against dark worlds, the
-    touch buttons cover the ground strip, and the iOS "add to home screen" banner covers the
-    middle of the play field (`current-iphone-level1.png`, `current-iphone-boss.png`). The
-    banner is outside Yandex-specific scope, but the art should not put key reads in the bottom
-    fifth of the screen on touch devices.
+    Cyrillic string to `sans-serif` (`src/i18n/index.js:103`), because the vendored
+    `PixelifySans.woff2` (7.5 KB) covers Latin-1 only.
+11. **Menu and finale lack structure**: floating controls; a flat lilac finale.
+12. **Mobile framing.** Light-blue letterbox bars on dark worlds, touch buttons over the ground
+    strip, and an iOS "add to home screen" banner over the play field in emulation
+    (`current-iphone-level1.png`).
 
-What already works and should stay: crisp nearest-neighbour rendering, the 1px dark outline on
-sprites, dithered sky bands, the cozy palette intent, squash/stretch and hit-stop, and ambient
-motion in every world.
+What already works and should stay: crisp nearest-neighbour rendering, the 1px dark outline, the
+cozy palette intent, squash/stretch and hit-stop, and ambient motion in every world.
 
 ---
 
 ## 2. Reference bar
 
-Only looks that a small team with a deterministic generator can reach. "Why it looks good" is
-the part we copy, not the art.
+Looks a small team can reach, and the specific thing to copy from each.
 
 | Game | Platform | What makes it look good | What we take |
 | --- | --- | --- | --- |
-| **Celeste** | PC/console, 320×180 native | Same native resolution as Part 1, so resolution is not what separates us. It wins on animation (hair colour as state, many frames), dust and particle juice, strong silhouette contrast between lane and backdrop, and per-chapter palettes. | Frame budgets, landing/dash dust, lane-vs-backdrop value contrast, one signature colour per world. |
-| **Shovel Knight** | PC/console, 400×240 | Restricted palette per stage with deliberate hue shifts, thick readable silhouettes, 4–5 parallax layers with a foreground. | Hand-picked per-world ramps instead of a tint, a foreground parallax layer, silhouette-first sprites. |
-| **Alwa's Legacy** | PC/console | Cute 16-bit proportions, saturated but soft palettes, large readable heroine face at small size. | Chibi proportions for a 32×48 heroine; big eyes; warm and cool contrast. |
-| **Kingdom Two Crowns** | PC/mobile | Mood made almost entirely of lighting: dithered light pools, reflections, time-of-day gradients over simple pixel geometry. | Baked light pools and reflections as the main mood tool (cheap on mobile). |
-| **Dead Cells** | PC/console/mobile | Pixel sprites produced by a **build step** from source assets (3D models rendered to pixel sheets), so animation volume is high and consistent. | Proof that "authored source + deterministic build to pixel sheets" scales; it is the model for §4. |
-| **Level Devil** | Poki (web), 4.08M votes per `00-market.md` | Almost no art: flat shapes, one accent colour, instantly readable hazards. | Readability beats detail: danger has one colour, used for nothing else. |
-| **Путь Пикселя** | Yandex Games, 16,196 votes, quality 69/61 per `00-market.md` | Market evidence only (its art was not audited here): a pixel-art platformer can hold a good Yandex quality score. | Confidence that pixel art is not a handicap on the target platform. |
+| **Celeste** | PC/console, 320×180 native | Same native resolution as Part 1, so resolution isn't the gap. It wins on animation, dust and juice, lane-vs-backdrop contrast, and per-chapter palettes. | Frame budgets, landing dust, value contrast, one signature colour per world. |
+| **Shovel Knight** | PC/console, 400×240 | Restricted per-stage palettes with hue shifts, thick silhouettes, 4–5 parallax layers with a foreground. | Locked per-world palettes instead of a tint; a foreground layer. |
+| **Alwa's Legacy** | PC/console | Cute 16-bit proportions, soft saturated palettes, readable faces at small size. | Chibi proportions for a 32×48 heroine. |
+| **Kingdom Two Crowns** | PC/mobile | Mood made of lighting: light pools, reflections, gradients over simple geometry. | Softer-shaded, light-led backgrounds behind a crisp lane (§3.4). |
+| **Dead Cells** | PC/console/mobile | Pixel sprites produced by a **build step** from source assets (3D renders → pixel sheets). | Proof that "non-pixel source + deterministic reduction to pixel sheets" works (§4). |
+| **Level Devil** | Poki (web), 4.08M votes per `00-market.md` | Almost no art; hazards and tricks instantly readable. | Tricks need a telegraph language (§3.10). |
+| **Путь Пикселя** | Yandex Games, 16,196 votes, quality 69/61 per `00-market.md` | Market evidence only (art not audited here): a pixel platformer can hold a good Yandex score. | Pixel art isn't a handicap on the platform. |
 
-**Market check:** the reference set assumes pixel art stays the Part 2 style. `00-market.md` shows
-one successful pixel platformer on Yandex and a girls' category driven by dress-up art. If the
-store team wants a painted/vector look for the cover and icon, keep it to store assets; the
-in-game look stays pixel.
+**Market check:** store cover, icon and screenshots must be Part 2-only and read as a new game in
+the catalogue (Yandex requirement 3.6 in `00-market.md`). The ChatGPT background pipeline makes
+store-quality key art cheap: lead with World 2 (bright) and the Level 6 boss.
 
 ---
 
 ## 3. Target art direction
 
-### 3.1 The one structural decision: double the art density, keep every runtime size
+### 3.1 Double the art density, keep every runtime size
 
-Part 2 authors art at **640×360 native, integer ×2** instead of 320×180 ×4. Every runtime
-dimension stays as it is: `GAME_W/H` 1280×720, `TILE` 64, the 64×96 heroine cell, colliders,
-level data, camera, physics. Only the number of art pixels per object doubles in each axis
-(4× the pixels). Nothing in `build.js` geometry, `composeMap()` or the mobile invariants changes
-because of it. `mockup-heroine-palettes.png` shows the two heroines at the same on-screen size.
+Part 2 targets **640×360 native art, integer ×2** instead of 320×180 ×4. Every runtime
+dimension stays: `GAME_W/H` 1280×720, `TILE` 64, the 64×96 heroine cell, colliders, level data,
+camera, physics. `mockup-heroine-palettes.png` shows the two heroines at the same on-screen size.
 
-Resolution per sprite type (native → runtime):
-
-| Type | Part 1 native | Part 2 native | Runtime (unchanged unless noted) |
+| Type | Part 1 native | Part 2 native | Runtime |
 | --- | --- | --- | --- |
-| Heroine and each wardrobe layer | 16×24 | **32×48** | 64×96 cell |
+| Heroine and each look layer | 16×24 | **32×48** | 64×96 cell |
 | Tiles | 16×16 | **32×32** | 64×64 |
 | Collectibles, magnet `L`, heart | 12×12 | **24×24** | 48×48 |
-| Small enemies (crab, hopper, flyer, swooper) | 16×10 / 12×8 | **32×20 / 24×16** | 64×40 / 48×32 |
+| Small enemies | 16×10 / 12×8 | **32×20 / 24×16** | 64×40 / 48×32 |
 | Charger `C` | — | **32×24** | 64×48 |
 | Steam vent `V` plume | — | **24×56** | 48×112 = `VENT_WIDTH` × `VENT_HEIGHT` |
 | Phase bridge `~`, rune `R` | — | **32×16**, **24×32** | 64×32, 48×64 |
-| Guardiana dell'Eco (L3) | primitive | **48×56** | 96×112 art; hitbox stays `BOSS.W/H` config |
+| Guardiana dell'Eco (L3) | primitive | **48×56** | 96×112 art; hitbox stays config |
 | La Dama dell'Eco (L6) | primitive | **56×76** | 112×152 art; hitbox stays config |
-| Props / decor | 8–24 | **16–64** | ×2 |
-| Sky | 320×180 | **640×360** | 1280×720 |
-| Parallax strips | 480 wide | **960 wide** | 1920 (same wrap span as `drawParallax`) |
+| Backgrounds | 320×180 / 480-wide strips | **softer "painterly pixel", 640×360 and long strips (§3.4)** | ×2 |
 | UI panels and icons | CSS / emoji | **9-slice pixel sheets, 12–16px icons** | ×2 |
 
-**Risk, and a Phase 0 gate: pixel wobble on iPhone.** The canvas uses `crisp` (`image-rendering:
-pixelated`) and `pixelDensity: 1` on touch. In iPhone landscape the backbuffer is ~764×430, so
-one Part 2 art pixel (2 runtime px) lands on ~1.19 backbuffer pixels. Nearest sampling will
-render some art columns 1 px wide and some 2 px wide, which shimmers while scrolling. Part 1 (~2.4
-px per art pixel) mostly hides this. Emulation cannot settle it (see `CLAUDE.md`: emulation ≠
-device). Phase 0 prototypes one ×2 level and tests on a real iPhone:
+**Risk, and a Phase 0 gate: pixel wobble on iPhone.** The canvas is `crisp` (`image-rendering:
+pixelated`) with `pixelDensity: 1` on touch. In iPhone landscape the backbuffer is ~764×430, so
+one Part 2 art pixel lands on ~1.19 backbuffer pixels. Nearest sampling will draw some columns
+1 px and some 2 px wide, which shimmers while scrolling. Emulation can't settle this. Phase 0
+tests on a real iPhone:
 
-- (a) density 1 as today, accept or reject the wobble by eye;
-- (b) raise density on touch only until the backbuffer is ≥1280 px wide (≈1.68 on a 932-pt phone,
-  ~2.8× the fill of density 1), and measure frame time;
-- (c) fallback if both fail: keep 320×180 ×4 for tiles and backgrounds, and use ×2 only for
-  the heroine, bosses and UI, where detail matters most.
+- (a) density 1, judged by eye;
+- (b) raise density on touch until the backbuffer is ≥1280 px wide (≈1.68, ~2.8× the fill),
+  and measure frame time;
+- (c) fallback: ×4 for tiles and backgrounds, ×2 only for the heroine, bosses and UI.
 
-Don't weaken culling, greedy meshing or the per-state frame cap to pay for (b).
+Don't weaken culling, greedy meshing or the frame cap to pay for (b).
 
-### 3.2 Palettes per world
+### 3.2 Palettes per world (locked hex — the quantizer's target)
 
-Rules: one hand-picked 8–12 colour set per world. Ramps **hue-shift**: shadows move toward blue
-or violet, highlights toward warm. No runtime multiply tint for world art (it caused weakness 3).
-Three reserved roles are identical in every world:
+Rules:
 
-- **Danger** `#ff5f7e` (rose-red) is used only on hazards, telegraphs and hurt flashes.
-- **Echo** `#7ff3ff`/`#8ff0e6` (cyan) marks Part 2's interactive magic: runes, bridges, notes,
-  the Dama's tells.
-- **Outline** `#24172e` (plum, not black) is shared by every sprite, so layered wardrobe art reads
-  as one figure.
-
-The gameplay lane must beat the backdrop on value: lane tiles' mid tone at least 25% lighter or
-darker (OKLCH L) than the backdrop behind them. The generator can assert this.
+- One locked 8–12 colour set per world for the lane (tiles, props, sprites). Backgrounds may use
+  a **32-colour extension** of the same hues for softer shading (§4.3).
+- Ramps hue-shift: shadows toward blue/violet, highlights warm. No runtime multiply tint.
+- Three reserved roles, identical in every world:
+  - **Danger** `#ff5f7e`: lethal hazards, boss telegraphs, hurt flashes.
+  - **Echo** `#7ff3ff`/`#8ff0e6`: Part 2 magic **and all trick telegraphs** (§3.10).
+  - **Outline** `#24172e`.
+- The lane beats the backdrop on value: lane mid tone ≥25% OKLCH L away from the backdrop behind
+  it. The build asserts it on composites (§4.5).
 
 | World | Mood | Core colours (dark → light) | Accents |
 | --- | --- | --- | --- |
@@ -188,235 +184,427 @@ darker (OKLCH L) than the backdrop behind them. The generator can assert this.
 | 5 Mare delle Stelle | Star-filled shallow sea | `#0b1030` `#1c3c78` `#2e5fa8` `#6a7fb0` `#fff3c4` | moss `#5ec4b0`, glow `#8ef6ff`, pink `#f58fc0` |
 | 6 Tetto del Primo Ballo | Night roof, verdigris copper | `#140f2b` `#3a2a5e` `#28575a` `#5fae9c` `#8fd6c2` | gold `#e8b84a`, window `#ffc76e`, echo `#7ff3ff` |
 
-Letterbox bars and the `#fade` overlay take the active world's darkest colour through a CSS
-variable, instead of today's light blue (weakness 12).
-
-**Market check:** Yandex catalogue thumbnails are small and busy. Worlds 1, 5 and 6 are all night
-scenes. Store screenshots and the cover should lead with World 2 (bright) and World 6 (boss),
-and must not reuse Part 1 art (requirement 3.6 in `00-market.md`).
+Letterbox bars and `#fade` take the world's darkest colour through a CSS variable.
 
 ### 3.3 Animation frame budgets
 
-Heroine sheet grows from 8×3 to **8×4 (32 cells)**, still 64×96 cells. `SHEET`/`ANIMS` in
-`src/animspec.js` stay the single contract, and wardrobe layers keep the same grid and pose
-records so overlay sync still holds by construction.
+Heroine sheet grows from 8×3 to **8×4 (32 cells)**, still 64×96 cells. `SHEET`/`ANIMS` stay the
+contract, and every look uses the same grid. Where each frame comes from is decided in §4.6.
 
-| Heroine anim | Part 1 | Part 2 | Notes |
-| --- | ---: | ---: | --- |
-| idle | 4 | 6 | breath, blink, hair settle |
-| run | 6 | 8 | contact / down / pass / up ×2, with lean |
-| jump | 1 | 2 | take-off stretch, rise |
-| apex→fall | 1 | 2 | apex float, fall with hair and skirt lift |
-| land | 1 | 2 | squash, recover |
-| hurt | 1 | 3 | hit flash, recoil, "ops" face |
-| skid | 1 | 2 | |
-| celebrate | 4 | 4 | reused by reward, finale |
-| wardrobe layers | per frame | per frame | same 32 cells each |
+| Heroine anim | Part 1 | Part 2 |
+| --- | ---: | ---: |
+| idle | 4 | 6 |
+| run | 6 | 8 |
+| jump | 1 | 2 |
+| apex→fall | 1 | 2 |
+| land | 1 | 2 |
+| hurt | 1 | 3 |
+| skid | 1 | 2 |
+| celebrate | 4 | 4 |
 
 | Other sprite | Frames |
 | --- | --- |
-| Collectible (echo note, per-world variant) | 8-frame spin |
-| Crab / hopper / flyer / swooper / roller (restyled) | 6 per loop + generated 1-frame white flash |
-| Charger `C` | idle 4, notice/telegraph 2, charge 4, recover 2 |
-| Steam vent `V` | dormant 1, warning 3, active 4 (loop) |
-| Rune `R` / phase bridge `~` | rune idle 4, lit 4; bridge fade-in 4 (fits `PHASE_BRIDGE_FADE` 0.18 s), shimmer 4, fade-out 4 |
-| Magnet `L` | spin 6; aura ring 4 while active |
+| Collectible (per-world echo note) | 8-frame spin |
+| Restyled enemies | 6 per loop + generated 1-frame white flash |
+| Charger `C` | idle 4, telegraph 2, charge 4, recover 2 |
+| Steam vent `V` | dormant 1, warning 3, active 4 |
+| Rune `R` / bridge `~` | rune idle 4, lit 4; bridge fade-in 4 (`PHASE_BRIDGE_FADE` 0.18 s), shimmer 4, fade-out 4 |
+| Magnet `L` | spin 6, aura 4 |
 | Checkpoint bell `F` | idle 1, ring 6 |
+| Trick props (§3.10) | telegraph 4, reveal 4 |
 | Guardiana dell'Eco | hover 4, telegraph 3, attack 3, window 4, hurt 2, freed 4 = **20** |
 | La Dama dell'Eco | hover 6, telegraph 4, cast 4, window 4, hurt 2, reconcile 4 = **24** |
-| Dust / sparkle / landing ring | 4–5 frame strips |
 
-The boss sheets drive the existing timer phases (`hover → telegraph → recover → descend → window
-→ ascend`). Art never adds a phase or changes a duration (`04-boss.md`).
+Boss sheets drive the existing timer phases; art never adds a phase or changes a duration
+(`04-boss.md`).
 
-### 3.4 Parallax layers per world
+### 3.4 Backgrounds: long, layered, looping (priority)
 
-Five layers maximum. Each is one texture, so each costs about one draw call. The generator bakes
-**aerial perspective**: every layer is blended toward the sky colour by depth (far 60%, mid 35%,
-near 10%). That single rule gives the mockups most of their depth.
+Five layers maximum, each one texture strip set. Backgrounds keep softer shading than sprites,
+but are quantized to the world palette extension and pushed back by aerial perspective (blend
+toward the sky colour: far 60%, mid 35%, near 10%). Aerial perspective also keeps them from
+stealing readability from the lane.
 
-| Layer | Factor | Rule |
-| --- | --- | --- |
-| Sky | fixed | 640×360 dithered gradient + world light (moon, sun, lamps) |
-| Far | 0.2 | silhouettes, strongest haze |
-| Mid | 0.5 | detailed set dressing with baked light pools |
-| Near | 0.8 | dark framing shapes near the lane |
-| Foreground | 1.15 | **sparse**, only in the top ~120 runtime px or below the ground line; never over the lane |
+**Length.** Levels are 116–132 cells in `02-levels.md` (up to ~140 with slack) × 64 px = up to
+**8,960 runtime px** of camera travel. A layer scrolling at factor `f` must show `f × 8960 + 1280`
+px without an obvious repeat:
+
+| Layer | Factor | Span needed (runtime px) | Authored length | Repeat |
+| --- | --- | ---: | --- | --- |
+| Sky | fixed | 1280 | 1 image | none |
+| Far | 0.2 | ~3,070 | 2 segments, looped | ≥1 loop per level, acceptable at that distance |
+| Mid | 0.5 | ~5,760 | 4 segments | none within one level |
+| Near | 0.8 | ~8,450 | 4 segments, looped | ~2 loops per level, broken up by 2 variant segments |
+| Foreground | 1.15 | sparse sprites | props, not a strip | only in the top ~120 px or below the ground line |
+
+One ChatGPT landscape image becomes roughly one 1920-runtime-px segment after processing (§4.4).
+Strips ship at native ×1 and are drawn at `k.scale(2)`; each 960-native-wide piece stays under
+Kaplay's 2048 atlas page.
 
 | World | Far | Mid | Near | Foreground |
 | --- | --- | --- | --- | --- |
-| 1 Soglia | colonnade with arched night windows | gilded echo mirrors showing Part 1 worlds, fluted pillars, light shafts | pillar bases, balustrades | drapes, chandelier |
+| 1 Soglia | colonnade with arched night windows, moon | gilded echo mirrors showing Part 1 worlds, fluted pillars, light shafts | pillar bases, balustrades | drapes, chandelier |
 | 2 Chiome | misty canopy domes | bellflower trunks with hanging bells | leaf clusters | overhanging vines |
-| 3 Archivio | endless dim shelf stacks | floating shelves with lamp pools, drifting pages | ladder silhouettes | page flurry (particles, not a layer) |
+| 3 Archivio | dim shelf stacks | floating shelves with lamp pools | ladder silhouettes | page flurry (particles) |
 | 4 Fucina | dawn sky through chimneys | furnaces with ember glow, gears | chains, anvils | hanging chains |
-| 5 Mare | star sky + horizon | floating islands, reflections in the water band | reef rocks | none (keep the glide line clear) |
-| 6 Tetto | castle spires with warm windows | ballroom roof, rose window, dormers | chimneys | none in the arena (boss reads need the sky) |
+| 5 Mare | star sky + horizon | floating islands, reflections | reef rocks | none |
+| 6 Tetto | spires with warm windows | ballroom roof, rose window, dormers | chimneys | none in the arena |
 
-`mockup-boss.png` shows why the arena gets no foreground layer: telegraph markers and falling
-shards must be the brightest things near the floor. The dormer windows were moved up in the
-mockup for that reason.
+`mockup-boss.png` shows why the arena has no foreground: telegraphs must be the brightest things
+near the floor.
 
 ### 3.5 Tile sets and autotiling
 
-Per world, one **authored tile kit** at 32×32 native (base block, top lip, edge column, corner,
-underside, 2–3 surface decals). The generator expands it into the full atlas, so authoring stays
-small and the variants stay consistent:
+Per world, one **tile kit** at 32×32 native (base block, top lip, edge, corner, underside, 2–3
+decals). The ChatGPT kit sheet (§4) is reduced to that kit, then the generator expands it
+procedurally:
 
 | Frames | Count |
 | --- | ---: |
-| 4-bit exposure mask (top/right/bottom/left open) | 16 |
-| Inner-corner overlays | 4 |
-| Top variants / fill variants | 3 / 3 |
-| Semisolid left / mid / right, plus world rail style | 3 |
-| Hazards (static spike, ceiling) | 2 |
-| Surface decals (grass, snow, gilding, moss…) | 4 |
+| 4-bit exposure mask | 16 |
+| Inner corners | 4 |
+| Top / fill variants | 3 / 3 |
+| Semisolid L / M / R | 3 |
+| Hazards | 2 |
+| Surface decals | 4 |
 | **Total** | **35** |
 
-At 64 px runtime that is an 8×5 atlas, 512×320 per world (0.62 MB RGBA).
+At runtime size that is an 8×5 atlas, 512×320 per world.
 
-- **Selection stays in `build.js` at build time.** `buildLevel()` already walks the map. It
-  computes each `=` cell's neighbour mask once and picks the frame. The cells stay collider-free
-  `"scenery"`, and `buildSolidColliders` greedy-meshes exactly as today. Autotiling touches
-  visuals only (see the invariant "never re-add `area()`/`body()` to `=` tiles").
-- The runtime `k.color(theme.solid)` tint on tiles is removed. Per-world colours come baked into
-  each world's atlas, so `theme.solid`/`solidTop` become generator inputs, not runtime tints.
-- `mockup-level1.png` shows the kit in marble: top lip, cornice shadow, brick courses, carved end
-  caps at the ravine, a darker contact band where the terrace meets the floor.
+- **Mask pick in `build.js` at build time.** `=` cells stay collider-free `"scenery"`, and
+  `buildSolidColliders` greedy-meshes as today.
+- The runtime `k.color(theme.solid)` tint is removed; colours are baked per world.
 
 ### 3.6 Lighting and particles
 
 | Effect | Approach | Mobile cost | Verdict |
 | --- | --- | --- | --- |
-| Light pools (lamps, windows, moon, portal) | **Baked** into mid layers; for live objects a pre-rendered dithered-alpha glow sprite as a child | 0 extra draw calls in layers; 1 quad per lit object | **Yes** |
-| Aerial perspective, fog bands | Baked per layer | 0 | **Yes** |
-| Additive glow | Not available: Kaplay 3001.0.19 blends premultiplied `ONE, ONE_MINUS_SRC_ALPHA` globally and exposes no blend-mode option. Dithered alpha glows read well (mockups). | — | Use baked alpha |
-| Per-object `shader()` (hit flash, palette swap) | Breaks sprite batching for each object | +1 draw call per shaded object | **No.** The generator emits 1-frame white-silhouette `_flash` frames instead |
-| Full-screen `usePostEffect` (bloom, CRT, colour grade) | Extra framebuffer pass at full resolution | Full-screen fill every frame | **Desktop-only option, off by default**; nothing in the look depends on it |
-| Vignette | One fixed 640×360 dithered sprite (baked per world) | 1 full-screen alpha quad | Yes; measure on device, drop on touch if it costs frames |
-| Echo after-images (heroine trail, boss copies) | 2 extra sprites of the same frame at 0.08–0.25 opacity, cyan tint | 2 quads, same texture, same batch | Yes, and it's the Part 2 signature |
-| Ambient motes, pages, embers, stars | Kaplay `particles()` component: one object per emitter with pooled quads, instead of one `k.circle` object with its own `onUpdate` per mote | Fewer objects and updates than today's `drawMotes`/`drawSnowflakes` | **Yes.** Also removes weakness 6, since particles become pixel sprites |
-| Reflections (World 5 water, World 1 marble) | Flipped copy of the heroine sprite at 0.2 opacity, clipped to a band | 1 quad | Yes, World 5 first |
+| Light pools, moon, windows | Baked into background layers (ChatGPT renders them; the quantizer keeps them) | 0 | **Yes** |
+| Aerial perspective | Baked per layer in processing | 0 | **Yes** |
+| Additive glow | Not available: Kaplay 3001.0.19 blends premultiplied `ONE, ONE_MINUS_SRC_ALPHA` and exposes no blend mode | — | Dithered alpha glow sprites |
+| Per-object `shader()` (flash, palette swap) | Breaks batching per object | +1 draw call each | **No.** `_flash` frames are generated |
+| `usePostEffect` | Extra full-resolution pass | full-screen fill | Desktop-only option, off by default |
+| Vignette | One fixed dithered sprite per world | 1 quad | Yes; measure on device |
+| Echo after-images | 2 extra sprites of the same frame, 0.08–0.25 opacity | 2 quads, same batch | Yes, the Part 2 signature |
+| Ambient motes / pages / embers | Kaplay `particles()` emitters instead of one object per mote | cheaper than today | **Yes** |
+| Reflections (World 5, World 1) | Flipped sprite copy at 0.2 opacity | 1 quad | Yes |
 
-Particle caps: **≤60 live quads on touch, ≤150 on desktop**, across all emitters (today's
-`coarsePointer` halving pattern continues).
+Particle caps: **≤60 live quads on touch, ≤150 on desktop**.
 
 ### 3.7 Juice
 
-Existing and kept: squash/stretch (`player.js`), `hitStop`, `screenShake`, `dustPuff`,
-`confettiBurst`, the CSS `fadeToScene`. Part 2 changes:
+Kept: squash/stretch, `hitStop`, `screenShake`, `dustPuff`, `confettiBurst`, `fadeToScene`.
 
-| Beat | Treatment | Budget |
-| --- | --- | --- |
-| Run | dust sprite every 2nd contact frame | 1 short strip |
-| Take-off / land | stretch 0.85×1.2 / squash 1.15×0.85 (current values fit), 5-frame dust ring on land | — |
-| Stomp | hit-stop 70 ms, shake 2 px, enemy flash frame, 4-quad burst | existing helpers |
-| Boss hit | hit-stop 90 ms, shake 4 px, boss `_flash` frame, echo copies scatter | shake ≤4 px on touch |
-| Pickup | 8-frame note spin, 6-quad sparkle burst, HUD counter pops 1.3× for 0.12 s | replaces rect confetti |
-| Checkpoint | bell ring strip + one expanding pixel ring | 1 sprite |
-| Telegraphs | danger-colour pulse at a fixed rate (vent warning, charger notice, debris markers, Dama rings) | same timing as config telegraphs |
-| Scene transition | keep the DOM `#fade`, but use a **dithered diamond wipe**: a CSS mask stepping through a 4-step Bayer pattern over the same 350 ms, in the world's dark colour | DOM only, off Kaplay's tree |
-| Chapter title | ribbon banner at top centre (`mockup-level1.png`), slides in and fades; never over the lane or boss | replaces full-width title text |
+| Beat | Treatment |
+| --- | --- |
+| Run / land | dust sprite every 2nd contact frame; 5-frame dust ring on land |
+| Stomp | hit-stop 70 ms, shake 2 px, enemy flash frame |
+| Boss hit | hit-stop 90 ms, shake ≤4 px, `_flash` frame, echo copies scatter |
+| Pickup | 8-frame spin, 6-quad sparkle, HUD counter pop |
+| Checkpoint | bell ring strip + pixel ring |
+| Telegraphs | danger pulse (lethal) or echo shimmer (trick) at fixed rates |
+| Transition | DOM `#fade` with a dithered diamond mask, 350 ms, in the world's dark colour |
+| Chapter title | ribbon at top centre, never over the lane or boss |
 
-`prefers-reduced-motion` disables screen shake and the echo trail, and shortens the wipe.
+`prefers-reduced-motion` disables shake and the echo trail.
 
 ### 3.8 UI and HUD restyle
 
-- **One visual system**: 9-slice pixel panels (Kaplay `loadSprite` supports `slice9`), plum
-  outline, lilac bevel, generated from one panel sheet per state (normal, selected, disabled).
-  The same PNG is used as CSS `border-image` in DOM overlays (pause, leaderboard, receipt,
-  settings), so canvas and DOM finally match.
-- **Generated pixel icons replace emoji** in the HUD (note, heart, star, clock, per-world
-  collectible). This also removes the "pixel font has no emoji" trap for HUD code, though the
-  `font: "sans-serif"` rule stays for any remaining emoji text.
-- **HUD** stays in the left column (invariant: top-right belongs to the DOM audio button). It is
-  one panel: collectible count, heart pips (up to 5 pips, then `×N` up to `LIVES.MAX` 9), stars,
-  timer. The boss bar goes top centre with name and HP pips (`mockup-boss.png`).
-- **Fonts**: ship a pixel font subset that **covers Cyrillic** (and Latin-1 for IT) so the RU
-  build stops falling back to `sans-serif` (weakness 10). Pixelify Sans' upstream family lists
-  Cyrillic support; check the glyph set and OFL licence before subsetting. `uiFont()` keeps its
-  fallback for any missing glyph. Long prose (finale letter, character descriptions) stays
-  `sans-serif` per the invariant. The 5×7 bitmap font in the mockups is only there because the
-  mockup script can't rasterise woff2; don't ship it.
-- **Minimum sizes**: HUD and button text cap height ≥20 runtime px (≈12 CSS px at the iPhone
-  0.597 scale), touch targets ≥44 CSS pt. Tutorial hints go in a panel above the HUD line or near
-  the object, never over the heroine.
-- **Menu** (`mockup-menu.png`): logo with gold ramp and outline; a "Il tuo viaggio" panel with
-  six world cards (thumbnail, number, stars, lock); primary/secondary 9-slice buttons; the
-  heroine on a lit pedestal at integer ×2 of her gameplay sprite (no 1.9× scaling). The share
-  pill and audio button keep their DOM slots and behaviour.
-- **Finale**: the restored ballroom as a real 5-layer scene with the four guests, the letter in
-  a 9-slice parchment panel that leaves the dance visible; the `CLASSIFICA → SCONTRINO` flow
-  stays untouched.
+- **One visual system**: 9-slice pixel panels (Kaplay `slice9`), plum outline, lilac bevel. The
+  same PNG is used as CSS `border-image` in DOM overlays (pause, leaderboard, receipt, settings,
+  shop).
+- **Generated pixel icons replace emoji** in the HUD: note, heart, star, clock, Coccoline, and a
+  video icon marking every rewarded button.
+- **HUD** stays in the left column (the top-right belongs to the DOM audio button). One panel:
+  collectible count, heart pips (5, then `×N` to `LIVES.MAX` 9), stars, timer. The boss bar goes
+  top centre.
+- **Fonts**: ship a pixel font subset that **covers Cyrillic** so RU stops falling back to
+  `sans-serif`. Pixelify Sans' upstream family lists Cyrillic; verify glyphs and the OFL licence
+  before subsetting. Long prose stays `sans-serif`.
+- **Minimum sizes**: HUD/button cap height ≥20 runtime px (≈12 CSS px on iPhone landscape), touch
+  targets ≥44 pt.
+- **Menu** (`mockup-menu.png`): logo, world cards, "Guardaroba" button, heroine on a pedestal at
+  integer ×2.
+- **Finale**: the restored ballroom as a layered scene; the `CLASSIFICA → SCONTRINO` flow is
+  unchanged. The receipt shows Anna in her current look (§3.9).
 
-**Market check:** the mockup logo "Il Valzer Incompiuto" is a placeholder from the story title.
-The real `p2.brand.*` name must be unique in the catalogue (req. 5.12) and read well in RU first.
+**Market check:** "Il Valzer Incompiuto" in the mockups is a placeholder. The `p2.brand.*` title
+must be unique in the catalogue (req. 5.12) and read well in RU first.
 
-**Market check:** `00-market.md` rates a wardrobe meta as a Must. The menu mockup shows a
-"Guardaroba" button, and the 32×48 layered heroine is what makes looks worth collecting. Slot
-count and look count per slot are product decisions; the art pipeline in §4 is sized for ~6
-slots × 3 looks.
+### 3.9 Wardrobe production (scope: wardrobe meta)
 
-**Market check:** Anna's Part 2 default look keeps the "carta da zucchero" puffer jacket for
-continuity with the gift. The audience is 58% women, 80% over 25; if research prefers a more
-elegant default for store art, swap the store pose, not the in-game identity.
+**Slots and counts.** 6 slots, aligned with the `02-levels.md` keys, and **5 looks per slot at
+launch = 30 looks**:
+
+| Slot (IT label) | Level-free look (`afterLevel`) | Paint layer |
+| --- | --- | --- |
+| Testa (hairpin / tiara / veil) | `p2_hairpin` (L5) | over hair |
+| Corpetto (top / sleeves) | `p2_sleeves` (L4) | over torso and arms |
+| Abito (skirt / gown) | `p2_ballgown` (L6) | over legs |
+| Scarpe | `p2_boots` (L3) | over feet |
+| Gioiello (brooch / necklace) | `p2_brooch` (L2) | chest |
+| Mantello / velo (back) | `p2_veil` (L1) | **behind** body |
+
+| Acquisition path per slot | Looks | Total |
+| --- | ---: | ---: |
+| Default (starting outfit: Anna's puffer jacket, jeans, sneakers; empty accessory slots) | 1 | 6 |
+| Level-free (one per completed level) | 1 | 6 |
+| Coccoline | 1 | 6 |
+| Stars | 1 | 6 |
+| IAP bundles (2 themed bundles × 3 looks) | 1 | 6 |
+| **Launch total** | **5** | **30** |
+| Weekly time-trial exclusives | produced in batches of 4 | +4 / month |
+
+Launch is 30 looks. That is 24 new overlays, since the 6 defaults are the base body.
+
+**Market check:** the path mix (free / Coccoline / stars / IAP) and the IAP share (6 of 30) are
+product choices; `00-market.md` rates wardrobe as a Must and IAP as a Should. Adjust counts per
+column, not the pipeline.
+
+**Consistency across looks.** Alignment is solved in the build, not by hoping the model draws
+the same body twice:
+
+1. **One approved Anna reference sheet** (front, side, back, colour swatches with hex) and **one
+   approved base pose grid** (the 32-cell sheet, processed). Both are committed source.
+2. **Every look is generated as an edit of the base pose grid image**: "dress this exact character
+   in <look>, keep poses, proportions, framing and the magenta background". It is never drawn
+   from scratch.
+3. **The build extracts the look as a layer**: process the look grid exactly like the base (§4.2),
+   register each cell to the base cell by the feet anchor and head bounding box, then take the
+   pixels that differ from the processed base **inside the slot's region mask** (e.g. Scarpe =
+   rows 43–47, Testa = head box). The result is a transparent overlay on the shared 32×48 grid.
+4. **Validator**: overlay pixels outside the slot mask (plus a 2 px margin) fail the build; so
+   does any accent outside the look's ≤3 allowed extra colours, and any use of the danger colour.
+   The region mask also makes slots combine freely: a gown can't overwrite the torso layer.
+5. **Draw order** is fixed: back → body → Abito → Corpetto → Scarpe → Gioiello → Testa. Runtime
+   still mirrors the parent frame (`layer.frame = player.frame`), so frame sync holds by
+   construction.
+
+`mockup-wardrobe.png` builds its preview with exactly this model: `dressed()` stacks per-slot
+overlays on one pose grid.
+
+**Wardrobe/shop UI** (`mockup-wardrobe.png`):
+
+- **Top bar**: Coccoline and star totals. **Left**: slot tabs. **Centre**: Anna in the current
+  combination at integer ×3 and the set progress. **Right**: look grid.
+- **Every card shows its state and exact acquisition path**: owned, equipped, `LIVELLO N` lock,
+  star count, Coccoline price, IAP price, weekly exclusive.
+- **IAP prices** are rendered from the Yandex catalog's price string (the mockup's "99 YAN" is a
+  placeholder), never a hard-coded literal (req. 1.13.4). Purchases are server-saved (req. 1.13.3);
+  the no-SDK path hides IAP cards.
+- **Actions**: `INDOSSA` (equip), `COMPRA` (Coccoline), and `PROVA 1 LIVELLO` with the video icon.
+  The try-on is an opt-in rewarded ad and only a button (req. 4.5).
+- **Also shown**: the level select and the receipt render Anna in her equipped look.
+
+### 3.10 Trick moments and rewarded-offer visuals (scope: boosts + tricks)
+
+**The colour rule that keeps tricks fair:** a trick telegraph uses **echo cyan, pink and
+lilac** (playful) and never the danger red. A trick never kills. Danger red stays reserved for
+lethal hazards, so a player can tell "surprise" from "death" at a glance, even on the first
+visit.
+
+| Trick (`mockup-tricks.png`) | Telegraph (≥0.8 s, before anything happens) | Reveal | Placement |
+| --- | --- | --- | --- |
+| Fiori a sorpresa | buds sprout on the tiles, cyan sparkles, wobble lines | tiles bloom into a pink bounce cushion | optional ledge only |
+| Uscita timida | goal door peeks with eyes, cyan footprints mark the next cell, dashed ring | door hops 1 cell right twice, then stays | bonus exit or telegraphed critical exit; never onto a hazard or over a gap |
+| Corona finta | crown is lilac, not gold, blinks and wobbles | confetti, "OPS!" card, +50 Coccoline consolation | optional perch |
+| Pavimento eco | cracks, dust drips, 2 px jitter with a cyan ghost for 0.8 s | tiles drop her one cell onto a visible cushion | optional route; the cushion is always on screen before the drop |
+
+Each trick is one generated prop strip (telegraph 4 + reveal 4) plus data in `build.js`. The
+visuals add no collision rules beyond what `03-mechanics.md` allows.
+
+**Rewarded offers** (bottom strip of `mockup-tricks.png`) share one card component:
+
+- a video icon on the accept button, and an equal-size decline button ("No grazie" / "Continua");
+- they appear only at logical breaks: the pre-boss checkpoint (+1 heart, before the arena), the
+  reward screen (×2 Coccoline), level start (start with magnet), and the shop try-on;
+- never inside an arena, never automatic.
+
+**Market check:** exact offer copy and whether the decline button is equal in size affect
+opt-in rate. Keep equal size for Yandex rules and player trust; test copy, not dark patterns.
 
 ---
 
-## 4. Pipeline decision
+## 4. Pipeline: ChatGPT images as source, deterministic `tools/gen` as the build
 
-### Options
+Decided by the human: art is generated with ChatGPT image generation in the browser and
+downloaded. **Not tested yet** (see the Status block): the design below is complete, and
+Phase 0 proves it on one background layer and Anna idle/run.
 
-| | A. Upgrade procedural `npm run gen` only | B. AI / hand-authored sheets committed as the shipped assets | **C. Hybrid: authored source + deterministic build (recommended)** |
-| --- | --- | --- | --- |
-| How | Keep painting everything in JS with pose records | Commit finished PNGs into `assets/` | Commit small **source** PNGs (native-res, indexed to the world palette) in `art/src/`; `npm run gen` validates, expands and packs them into `assets/` |
-| Characters at 32×48 × 32 frames × 3 heroines + wardrobe | Thousands of lines of coordinates; appeal ceiling is roughly today's look | Good | Good |
-| Tiles, skies, parallax, glows, icons, panels | Strong (already works) | Hand work per world | Procedural, as today |
-| Determinism | Full | None (breaks the "never hand-edit `assets/`" rule) | Full: same source → same bytes |
-| Consistency (palette, grid, outline, frame counts) | By construction | Manual, drifts | Enforced by the build validator |
-| Risk | Characters and bosses stay "programmer art" | Mixels, off-palette pixels, AI licensing ambiguity | Needs a PNG decoder and validator (small) |
+### 4.1 Root causes of the variance, and the fix for each
 
-### Recommendation: C
+Re-rolling prompts treats symptoms. Each kind of variance has a structural cause and a
+deterministic answer:
 
-Split by what each method is good at:
+| Variance | Cause | Deterministic fix |
+| --- | --- | --- |
+| Not on a pixel grid; anti-aliasing | The model paints continuous images; "pixel art" is a style, not a grid | Never nearest-sample the raw image. **Area-average** into the target cells, then **palette-quantize** (§4.2) |
+| Palette drift between calls | No colour constraint in generation | Quantize to the **locked world hex palette** in OKLab; the palette file is source |
+| Proportion / identity drift | Each call re-imagines the character | One approved reference sheet attached to every call; pose grids generated **as edits**; the build normalizes scale by head height and rejects outliers |
+| Background seams, horizon and light drift between segments | Outpainting re-renders the overlap | Registration on the overlap band, horizon row lock, minimum-error seam cut (§4.4) |
+| Cut-out halos | Soft edges blending into the background | Flat **magenta `#ff00ff`** background, OKLab key + despill, binary alpha for sprites |
+| Framing drift | Model centres and scales freely | Pose grids with a drawn baseline; the build finds blobs and anchors on the feet line |
 
-- **Procedural (stays in `tools/gen`)**: skies, parallax layers with aerial perspective and baked
-  light, tile atlas expansion from each world's kit (16-mask + corners + variants), glows,
-  vignette, particle sprites, `_flash` silhouettes, 9-slice panels, icons, app icons, audio.
-- **Authored source (new `art/src/`)**: heroine bodies and wardrobe layers, enemies, the two
-  bosses, key props and the per-world tile kit. Editable in Aseprite, LibreSprite or Piskel.
-  AI image tools may produce **reference drafts only**. What gets committed is a pixel-clean
-  source that passes the validator. An AI output pasted straight in will fail on palette and
-  grid, and that failure is intended.
+### 4.2 Processing steps (pure functions of source bytes + config)
 
-Keeping the rule honest:
+For every source PNG in `art/src/<world|character>/<name>.png` with `<name>.prompt.txt` and
+`<name>.json` (cell size, palette id, layer role):
 
-1. `assets/` remains 100% generated. Nobody edits it; `npm run gen` rebuilds it from
-   `tools/gen` + `art/src`.
-2. `art/src/` is *meant* to be hand-edited. It sits outside `assets/`, and each world's
-   `palette.json` sits next to its sprites.
-3. The build fails when a source PNG has a colour outside its palette, a size that isn't an exact
-   multiple of the declared cell, a frame count that disagrees with `src/animspec.js`, a
-   wardrobe layer whose opaque pixels fall outside the body's silhouette mask plus margin, or
-   pixels in the reserved danger colour outside hazard sheets.
-4. Same input → same bytes, checked by running `npm run gen` twice and diffing (a CI check).
+1. **Decode**: `png-read.mjs` on `node:zlib`, keeping the no-dependency rule of `px.mjs`.
+   Downloads must be PNG; a WebP download is converted once at import and the PNG is committed.
+2. **Key out** magenta (OKLab distance ≤ threshold) and despill the edge ring toward the
+   neighbour colour. Sprites get binary alpha (≥50%); near/foreground layers get binary alpha;
+   far and mid layers are opaque.
+3. **Crop** to content (sprites: per detected blob, sorted by grid position).
+4. **Normalize** (characters): scale so the head height matches the reference ratio; anchor the
+   feet on the cell baseline; reject if the silhouette width deviates >12% from the reference
+   pose.
+5. **Downsample by area average** to the target size: 32×48 per heroine cell, 32×32 tile kit
+   cells, native-×1 background strips (height 240/180/120 by layer).
+6. **Quantize** in OKLab to the locked palette:
+   - sprites/tiles: nearest colour, no dither, then a 3×3 majority clean-up of isolated pixels;
+   - backgrounds: 2×2 Bayer ordered dither against the 32-colour extension (keeps soft
+     shading; ordered, never error diffusion, so the output is stable).
+7. **Finish**: 1 px `#24172e` outline on sprites; aerial-perspective blend on layers; `_flash`
+   silhouette frames; look-layer extraction (§3.9).
+8. **Stitch and loop** backgrounds (§4.4), then slice into ≤960-native-wide pieces.
+9. **Pack and write** `assets/` and a manifest recording every source file's SHA-256 and the
+   config hash.
+10. **Validate** (§4.5); fail the build on violation.
 
-### What changes in `tools/gen`
+Run twice, diff zero bytes: a CI check. `assets/` stays 100% generated, and the
+"never hand-edit `assets/`" rule stays honest. Raw ChatGPT PNGs plus their prompts are the
+source; nobody edits the outputs. A human pixel fix, when unavoidable, is committed as a
+`<name>.fix.png` overlay in `art/src/` and applied by the build, so it's reproducible.
+
+### 4.3 Prompts: a fixed style sheet, not free text
+
+Every prompt is `STYLE_SHEET + WORLD_BLOCK + SUBJECT_BLOCK`. Each block is committed text, and
+only the subject block varies.
+
+- **STYLE_SHEET** (all art): "cozy fairy-tale 16-bit pixel art look, clean shapes, soft hue-shifted
+  shading, light from the upper left, no text, no logos, no UI, no watermark, no signature."
+- **WORLD_BLOCK**: the world's hex palette listed as named colours, time of day, light direction,
+  horizon at 62% of image height, "orthographic side view for a 2D platformer background".
+- **Layer rules**: sky/far on its own ("no foreground objects"); mid and near "isolated
+  silhouettes on a flat solid #FF00FF magenta background, nothing touching the image edges
+  top/bottom, bottom edge flat".
+- **Characters**: "full body, side-by-side grid of N poses, feet on a thin horizontal black
+  baseline, equal spacing, flat #FF00FF background, same character as the attached reference
+  sheet".
+- **Sending rules**: only art prompts go to ChatGPT; never repo code, secrets or private files.
+  Attachments are only our own previously generated or processed art.
+
+Each download is saved as `docs/part2/art/gen/<name>.png` with the exact prompt in
+`<name>.prompt.txt` while exploring. Approved files move to `art/src/` for production.
+
+### 4.4 Long backgrounds: segments, seams, loops
+
+1. **Segment 1**: STYLE + WORLD + layer prompt, landscape output.
+2. **Segment n+1**: upload segment n and ask "extend this scene to the right as a direct
+   continuation; keep the horizon height, light direction and palette; the left edge must continue
+   the right edge of the attached image". Keep the horizon, light and palette text identical.
+3. **Registration**: downsample both segments to working size and search the horizontal offset
+   (and ±4 px vertical) that minimizes OKLab difference between segment n's right 25% and
+   segment n+1's left side.
+4. **Horizon lock**: detect the horizon row per segment (strongest luminance edge across the
+   width) and shift into agreement; >2 native px disagreement after shifting fails the segment.
+5. **Seam**: cut along a **minimum-error vertical path** through the overlap (image quilting),
+   not a straight cross-fade, so there are no ghosted double structures. For opaque layers, apply
+   a 4-step dithered transition of ≤8 native px around the path.
+6. **Loop**: the last segment is generated as an extension of segment N and cut to segment 1
+   with the same seam search; if it fails, one "bridge" segment is generated from both ends.
+   Near layers loop by design; mid layers carry enough segments not to repeat within a level.
+7. **Lane protection**: in the processed near layer, pixels in the lane band (ground line ±3
+   tiles) are pushed −15% OKLCH L and −30% chroma, so the lane keeps its contrast (§4.5).
+
+### 4.5 Validation and readability gate
+
+The build refuses output that:
+
+- has colours outside the locked palette (or the 32-colour extension for far/mid layers);
+- has a sprite cell whose size isn't the declared cell, or frame counts that disagree with
+  `src/animspec.js`;
+- has a look overlay outside its slot mask, or the danger colour outside hazard/telegraph sheets;
+- has a horizon mismatch between segments;
+- **composite check**: renders each world's mid+near layers under the processed tile kit and Anna
+  at 1280×720 and at the iPhone-landscape crop (the 764×430 CSS canvas area), then measures lane
+  contrast (tiles' and Anna's OKLCH L vs the background pixels behind them) — it fails below the
+  §3.2 threshold.
+
+The composite images double as review artefacts (§9).
+
+### 4.6 Animation: what comes from ChatGPT vs procedural
+
+ChatGPT can't hold frame-to-frame registration across 8 run frames. It generates **key poses**;
+the build and runtime make the motion.
+
+| Animation | From ChatGPT (key poses, one grid image each) | Procedural (build or runtime) |
+| --- | --- | --- |
+| idle 6 | 2 keys (neutral, breath-in) | 1 px upper-body bob, blink by eye-row swap, hair sway by shifting hair-palette pixels |
+| run 8 | 4 keys (contact L, pass L, contact R, pass R) | bob between keys; runtime lean via existing squash/stretch |
+| jump 2 / fall 2 | 1 rise, 1 fall | apex frame = rise with hair-lift shift; runtime stretch |
+| land 2, skid 2, hurt 3 | 1 each | squash, recoil offset, flash frame |
+| celebrate 4 | 2 keys | hop offsets |
+| Enemies | 2 keys each | bob, flash, squash |
+| Bosses | 4–6 keys | echo copies, telegraph rings, flash, bob |
+| Vent plume, bridge fade, glows, dust, sparkles | — | fully procedural (already proven in `mockups.mjs`) |
+| Looks | edits of the base pose grid | layer extraction (§3.9) |
+
+### 4.7 Licensing and ownership (not legal advice; re-check at production time)
+
+- OpenAI's Terms of Use, as last reviewed for this doc, assign to the user OpenAI's rights in
+  generated output, and state that similar output may be produced for other users. The exact
+  current wording must be re-read before production.
+- In several jurisdictions (e.g. US Copyright Office guidance) purely AI-generated imagery may not
+  be copyrightable. Don't assume exclusivity. The human-authored parts — selection, palettes,
+  processing, level composition, and any pixel fixes — strengthen authorship.
+- Never prompt with protected characters, franchises or a named living artist's style. This
+  matches the existing "original concept, not Disney" rule in `config.js`.
+- Keep prompts, dates and account type in `*.prompt.txt` as provenance.
+
+**Market check:** confirm whether Yandex Games moderation expects disclosure of AI-generated
+assets. The human is already contacting Yandex support about requirement 3.6; ask in the same
+ticket.
+
+### 4.8 Throughput and generation estimate
+
+ChatGPT image limits depend on the plan, aren't fixed publicly, and change over time, so the
+rates below are **assumptions to measure in Phase 0**, not facts. Plan on bursts followed by
+cooldowns, with human review of every image.
+
+| Item | Generations incl. ~2× retries |
+| --- | ---: |
+| Per world: sky 1, far 2, mid 4, near 4 + 2 variants + loop bridge 1 per layer | ~30–40 |
+| Per world: tile kit sheet + decals | ~6–10 |
+| Per world: props, collectible, 2–3 enemies, trick props | ~20–30 |
+| **Per world total** | **~60–80** |
+| Anna reference sheet + 32-cell key-pose grids (4–6 grids) | ~20–30 |
+| Sognatrice + Avventuriera (edits of Anna's grids) | ~20–30 |
+| 24 look overlays (edits) | ~50–70 |
+| Bosses (2) | ~20–30 |
+| Store cover / icon / screenshots key art | ~15–25 |
+| **Whole game** | **~500–650** |
+
+At an assumed 40–60 accepted generations per working day, that's **~3–4 calendar weeks** of
+generation, spread across phases. Backgrounds for Worlds 1 and 2 go first (~150).
+
+### 4.9 What changes in `tools/gen`
 
 | Change | Size |
 | --- | --- |
-| `png-read.mjs`: minimal PNG decoder on `node:zlib` (8-bit RGBA/indexed, no interlace), keeping the no-dependency rule of `px.mjs` | S |
-| `source.mjs`: load `art/src/**`, validate (palette, grid, frame count, layer mask), emit sheets + `_flash` frames + outline pass | S |
-| `px.mjs`: add alpha `blend`, dithered `glow`, `ring`, `vgrad` with stops, `vignette` (all prototyped in `mockups.mjs`); `SCALE` becomes per-output (2 for Part 2) | S |
-| `world.mjs` → `tiles.mjs`: expand a 32px kit into the 35-frame atlas per world | M |
-| `backgrounds.mjs`: 5 layers, aerial perspective, baked light pools, per-world vignette; optionally emit native-res (×1) PNGs for runtime scaling (§6) | M |
-| `ui.mjs`: 9-slice panel sheets, HUD icons, CSS `border-image` export | S |
-| `animspec.js`: 8×4 heroine sheet, new `WORLD_SHEETS` entries (charger, vent, rune, bridge, magnet, bell, bosses) | S |
-| Runtime follow-ups outside `tools/gen` (for the implementation PRs): mask-based tile pick and tint removal in `build.js`, `particles()` emitters in `game.js`, sprite bosses in `makeBoss`, HUD panel, font subset | M |
+| `png-read.mjs`: minimal PNG decoder on `node:zlib` | S |
+| `source.mjs`: key-out, crop, normalize, area-average, OKLab quantize, outline, `_flash` | M |
+| `stitch.mjs`: segment registration, horizon lock, min-error seam, loop, lane protection, slicing | M |
+| `looks.mjs`: register look grids to the base grid, slot-mask extraction, validation | S |
+| `tiles.mjs`: expand the reduced kit into the 35-frame atlas | M |
+| `validate.mjs` + composite readability check (1280×720 and iPhone crop) | S |
+| `px.mjs`: alpha blend, dithered glow/ring/vignette (prototyped in `mockups.mjs`); per-output scale | S |
+| `animspec.js`: 8×4 heroine sheet; new `WORLD_SHEETS` entries | S |
+| Runtime follow-ups (implementation PRs): mask tile pick + tint removal in `build.js`, `particles()` emitters, sprite bosses, native-res background strips with lazy per-world loading, HUD/shop panels, font subset | M |
 
-Effort (one developer, sizes per `00-market.md`: S ≤1 week, M ≤3 weeks, L >3 weeks). C totals
-~11–13 weeks with the art itself (§7). A alone would be ~9–10 weeks and cap characters and
-bosses at roughly today's appeal. B looks fast but fails the determinism rule and costs rework
-the first time a palette changes.
+`npm run gen` stays offline and deterministic: it never calls ChatGPT. Generation is a separate,
+human-in-the-loop step whose output is committed source.
 
 ---
 
@@ -424,20 +612,21 @@ the first time a palette changes.
 
 | Mockup | Shows |
 | --- | --- |
-| `mockup-level1.png` | World 1 palette; marble autotile kit with carved ravine caps; 5-layer depth (window colonnade, echo mirrors with Part 1 worlds, pillars, drapes/chandelier foreground); baked moon and candle light; Anna at 32×48 mid-run with echo after-images and dust; `V` vent in warning phase with danger glint; `L` magnet on the gilded `#` balcony above the `M` spring; the three-note magnet lesson; echo moth; bell checkpoint; HUD panel with pixel icons; chapter ribbon; DOM button slots |
-| `mockup-boss.png` | World 6 arena on verdigris shingles with gold ridge; La Dama dell'Eco at 56×76 with gold echo-mask, cyan telegraph rings and two echo copies; the 7-slot debris telegraph with the contiguous 3-slot safe lane clear; falling star shards; observatory goal door; boss bar with 4 HP pips; no foreground layer over the fight |
-| `mockup-menu.png` | Logo treatment, world-select cards (thumbnail, stars, locks, selected state), 9-slice buttons including "Guardaroba", heroine on a lit pedestal at integer ×2, balcony foreground |
-| `mockup-heroine-palettes.png` | Part 1 16×24 vs Part 2 32×48 at identical on-screen size; idle/run/run/jump/fall/land poses from one pose-record painter; all six world palettes with thumbnails; frame budget |
-| `compare-level1.png` | Current Level 1 screenshot beside the Level 1 mockup |
+| `mockup-level1.png` | World 1 palette; marble autotile kit with carved ravine caps; layered depth; baked light; Anna 32×48 with echo trail and dust; `V` warning; `L` on the `#` balcony above `M`; notes; bell checkpoint; HUD panel; chapter ribbon |
+| `mockup-boss.png` | Verdigris arena; La Dama 56×76 with cyan telegraph rings and echo copies; 7-slot debris telegraph with the 3-slot safe lane; boss bar with 4 HP pips; no foreground over the fight |
+| `mockup-menu.png` | Logo, world cards, 9-slice buttons incl. "Guardaroba", heroine on a pedestal |
+| `mockup-wardrobe.png` | 6 slot tabs; layered preview; 8 look cards covering every acquisition state; equip / buy / opt-in try-on |
+| `mockup-tricks.png` | Four trick telegraphs in the non-lethal colour language; +1 heart and ×2 Coccoline offer cards with equal decline buttons |
+| `mockup-heroine-palettes.png` | Part 1 vs Part 2 heroine size; 6 poses; 6 world palettes; frame budget |
+| `compare-level1.png` | Current Level 1 beside the Level 1 mockup |
 
-Iteration log (each pass viewed at full size): pass 1 had a broken `A` glyph, menu buttons
-overlapping the world panel, a flat single-tone ballroom roof and overflowing text. Pass 2 fixed
-those and added lean to the run pose. Pass 3 moved the arena dormer lights away from the danger
-markers, which competed for attention with the telegraph.
+Iteration log (every pass viewed at full size): pass 1 broke the `A` glyph, overlapped the menu
+buttons, left the ballroom roof flat and overflowed text; pass 2 fixed those; pass 3 moved arena
+window lights away from danger markers. The wardrobe and trick mockups were added for the
+scope change.
 
-Known mockup limits: the jump/fall poses still read close to idle (the real sheet needs a
-side-leaning run and a clearer tuck); mockups are static, so the frame budgets are not
-demonstrated in motion.
+Known limits: code-painted mockups show layout, palettes and rules, not the final background
+richness the ChatGPT pipeline targets. Jump/fall poses read close to idle. Nothing is animated.
 
 ---
 
@@ -445,74 +634,90 @@ demonstrated in motion.
 
 ### Measured baseline (Part 1)
 
-- Draw calls **20–26** per frame in play; objects 550–616, of which **157–220 visible** after
-  culling (Chrome headless, desktop and iPhone-landscape emulation, levels 1–6). Emulation, not
-  device; the real iPhone frame time is unmeasured here.
-- Images: **329 KB** of PNG on disk, **66.7 MB decoded RGBA** if all are uploaded. Backgrounds:
-  18 files, 260 KB on disk, **58 MB decoded**, all loaded at boot by `src/assets.js`.
-- Audio: **8.4 MB** of WAV, 96% of the asset bytes.
+- Draw calls **20–26** per frame in play; objects 550–616, **157–220 visible** (Chrome headless,
+  desktop and iPhone emulation, L1–L6). No real-device frame times.
+- Images: **329 KB** of PNG, **66.7 MB decoded RGBA** if all loaded; backgrounds **58 MB**, all
+  loaded at boot by `src/assets.js`.
+- Audio: **8.4 MB** WAV.
 - Yandex archive cap enforced by `tools/package-yandex.mjs`: 100 MB uncompressed.
 
 ### Part 2 budget
 
-| Metric | Part 1 measured | Part 2 budget | How it holds |
+| Metric | Part 1 | Part 2 budget | How |
 | --- | ---: | ---: | --- |
-| Draw calls in play | 20–26 | **≤40** | 5 bg layers ≈5; one tile atlas per world; sprites packed in Kaplay's atlas pages; no per-object shaders; particles batched by emitter |
-| Visible objects | 157–220 | **≤300** | same culling; autotiling adds 0 objects (one sprite per `=` cell as today); decals only on exposed tops |
-| Live particle quads | ad hoc (8–40 mote objects) | **≤60 touch / ≤150 desktop** | `particles()` emitters with caps |
-| Decoded texture memory, whole game | 66.7 MB | **≤40 MB** | see below |
-| Decoded texture memory, loaded at once | 66.7 MB | **≤16 MB** | load only the current world's backgrounds and atlas |
-| Image bytes on disk | 0.33 MB | **≤3 MB** | pixel art compresses well; indexed PNG where possible |
-| Archive total | ~9.3 MB | **≤25 MB** | art stays small; audio is the real lever (out of art scope) |
+| Draw calls in play | 20–26 | **≤40** | ≤5 background textures on screen; one tile atlas per world; no per-object shaders; batched particles |
+| Visible objects | 157–220 | **≤300** | same culling; autotiling adds 0 objects |
+| Live particle quads | ad hoc | **≤60 touch / ≤150 desktop** | `particles()` caps |
+| Decoded textures loaded at once | 66.7 MB | **≤20 MB** | per-world lazy loading |
+| Decoded textures, whole game | 66.7 MB | **≤60 MB** | native-res strips |
+| Image bytes on disk | 0.33 MB | **≤8 MB** | softer backgrounds compress worse than flat silhouettes; indexed PNG where the palette allows |
+| Archive total | ~9.3 MB | **≤30 MB** | art stays small; audio is the bigger lever |
 
-How the texture budget is met despite 4× detail:
+Long backgrounds per world at native ×1: sky 640×360 + far 2×960×240 + mid 4×960×240 + near
+6×960×180 ≈ 0.23 + 0.46 + 0.92 + 1.04 MP ≈ **2.65 MP ≈ 10.6 MB RGBA**. Only the current world
+(plus the menu set) is loaded, so ≤20 MB loaded holds. Strips are drawn at `k.scale(2)`; there
+are no colliders on them, so runtime scaling is safe. Sprites stay emitted at runtime size (their
+sizes feed player and enemy scales).
 
-1. **Backgrounds ship at native resolution and scale at runtime.** Today a 1920×480 near layer
-   is a 1920×480 texture of 4×4 blocks. Part 2 keeps 960×240 native files and draws them with
-   `k.scale(2)` under `crisp`. `drawParallax` already rounds to whole pixels. Five layers per
-   world at native size ≈0.75 MP ≈ **3 MB RGBA** per world, versus 9.7 MB per world today. No
-   colliders involved, so this is safe.
-2. **Per-world lazy loading** of backgrounds and tile atlases on scene entry (only the menu set
-   and the current world live in memory), instead of loading all 18 layers at boot.
-3. **Sprites stay emitted at runtime size** (64×96 cells etc.), because player/enemy sizes and
-   scales derive from them. The heroine's 3 bodies + wardrobe sheets at 512×384 are ~0.8 MB each
-   decoded; all characters, enemies, bosses and props fit in ~16 MB.
-
-Frame budget on mobile: the upgrade adds texture detail, not per-frame work. Draw calls rise by
-roughly the extra parallax layers; object counts stay flat (autotiling picks frames, it doesn't
-add objects); particles get cheaper (emitters instead of per-mote objects). The costs that could
-break mobile are listed and gated: the pixel-density question in §3.1, the vignette quad, and the
-optional post-effect (desktop only). The frame cap, culling and greedy meshing stay exactly as
+On-screen cost stays flat: at any camera x only one or two pieces per layer are visible, so draw
+calls rise only by the extra layers. The gated mobile risks are pixel density (§3.1), the
+vignette quad and the desktop-only post-effect. The frame cap, culling and greedy meshing stay as
 the invariants describe.
 
 ---
 
 ## 7. Phased task list
 
-Sizes: S ≤1 week, M ≤3 weeks, L >3 weeks.
+Sizes: S ≤1 week, M ≤3 weeks, L >3 weeks (as in `00-market.md`).
 
 | # | Phase | Tasks | Size | Exit check |
 | --- | --- | --- | --- | --- |
-| 0 | **Density prototype + pipeline** | PNG decoder, source validator, `px.mjs` blend/glow helpers; one Level 1 slice at ×2 (tile kit, heroine idle/run, 5 layers); native-res backgrounds with runtime scale; lazy world loading | M | Real iPhone: wobble acceptable under option (a) or (b) from §3.1; frame time equal to Part 1 L1; `npm run gen` twice → identical bytes |
-| 1 | Art bible | Final 6 palettes with lane-contrast check, outline/danger/echo roles, pose sheet template, 9-slice template | S | `mockup-heroine-palettes.png` replaced by generated sheets |
-| 2 | Heroines + wardrobe | 3 heroines × 32 cells; wardrobe layers on the same grid (count per market decision) | M | overlay sync test in `features.mjs` passes; flash frames generated |
-| 3 | Tile kits + autotiling | 6 kits, 35-frame atlases, mask pick in `build.js`, tint removal | M | `levels.mjs` + `boss.mjs` green; collider counts unchanged per level |
-| 4 | Backgrounds | 5 layers × 6 worlds with aerial perspective and baked light; letterbox colour var | M | draw calls ≤40 in each level sample |
-| 5 | Objects + enemies | `L`, `V`, `R`, `~`, `C`, bell, restyled reused enemies, per-world collectible | M | telegraph frames match config timings |
-| 6 | Bosses | Guardiana (20 frames), Dama (24), telegraph rings, debris markers, shards, reward note/key | M | `boss.mjs` matrix from `04-boss.md` green; screenshots reviewed by eye |
-| 7 | Juice + particles | `particles()` emitters replacing mote objects, dust/land/pickup strips, shake/hit-stop tuning, dithered wipe, reduced-motion | S | particle caps respected; `mobile.mjs` green |
-| 8 | UI | HUD panel + icons, boss bar, Cyrillic pixel font subset, menu world cards, DOM `border-image` panels, finale scene | M | `i18n.mjs` IT/EN/RU passes with the pixel font on RU strings |
-| 9 | Device + store pass | Real iPhone and Android run of all levels; archive size check; cover, icon, screenshots from Part 2 worlds only | S | archive ≤25 MB; no Part 1 art in store assets |
+| 0 | **Browser access + pipeline proof** | Get claude-in-chrome or Kapture access; generate World 1 near layer (2 segments) + Anna reference sheet + idle/run grid; `png-read`, `source`, `stitch` prototypes; `pipeline-demo.png`; composites; `review.html`; real-iPhone density test | M | **Human approves `review.html`**; seam invisible at 1:1; lane contrast passes; `npm run gen` twice → identical bytes |
+| 1 | Art bible | Locked palettes + extensions, committed style sheet and world blocks, reference sheets | S | prompts and palettes committed as source |
+| 2 | Backgrounds W1, W2 | 5 layers, long segments, loops | M | composite gate green; draw calls ≤40 |
+| 3 | Heroines + base grid | 3 heroines × 32 cells from key poses + procedural in-betweens | M | overlay sync test in `features.mjs` green |
+| 4 | Wardrobe | 24 look overlays, slot masks, shop UI, receipt/level-select rendering | M | validator green; 30 looks combine without overlap |
+| 5 | Tile kits + autotiling | 6 kits, 35-frame atlases, `build.js` mask pick, tint removal | M | `levels.mjs` + `boss.mjs` green; collider counts unchanged |
+| 6 | Backgrounds W3–W6 | as Phase 2 | M | as Phase 2 |
+| 7 | Objects, enemies, tricks | `L`, `V`, `R`, `~`, `C`, bell, restyled enemies, 4 trick prop strips | M | telegraph frames match config timings; tricks use no danger colour |
+| 8 | Bosses | Guardiana (20 frames), Dama (24), telegraph FX | M | `boss.mjs` matrix from `04-boss.md` green |
+| 9 | Juice + UI | particles, wipe, HUD, offer cards, menu, Cyrillic pixel font, finale | M | `mobile.mjs` + `i18n.mjs` green |
+| 10 | Device + store | Real iPhone/Android pass; archive size; Part 2-only cover, icon, screenshots | S | archive ≤30 MB; store art has no Part 1 assets |
 
-Total: **~11–13 weeks** for one developer. Phases 2, 3, 4 and 5 can run in parallel once Phase 0
-passes; Phase 0 is the only hard gate, because its outcome decides between full ×2 and the
-fallback (c).
+Total: **~13–16 weeks** for one developer including ~3–4 weeks of generation calendar time.
+Phase 0 is the hard gate: it decides full ×2 vs fallback (c) and whether the ChatGPT pipeline
+meets the bar.
 
-## Open questions
+---
 
-- Pixel density on iPhone (§3.1). It needs a physical device, not emulation.
-- Does the upstream Pixelify Sans Cyrillic set match the vendored subset's metrics, or is a
-  different OFL pixel font needed for RU?
-- Wardrobe scope (slots × looks) sets the size of Phase 2; it's a market/product decision.
-- Should the Guardiana dell'Eco share the Dama's silhouette language (a lesser echo), or look
-  distinct? The mockups assume shared mask and gown motifs.
+## 8. Open questions
+
+- Browser access for ChatGPT generation (blocking Phase 0).
+- Pixel density on a physical iPhone (§3.1).
+- Cyrillic coverage of the pixel font.
+- Wardrobe path mix and IAP share (§3.9, market check).
+- Does Yandex moderation require AI-asset disclosure (§4.7)?
+- Should the Guardiana share the Dama's silhouette language?
+
+---
+
+## 9. Human review page (planned, blocked on generations)
+
+`docs/part2/art/review.html`: a static page with no build step and relative image paths, opened
+with `ao preview docs/part2/art/review.html`. Sections:
+
+1. **Before / after**: each `current-*.png` beside its new composite (1280×720 and the
+   iPhone-landscape crop), for Levels 1, 2, boss and menu.
+2. **Backgrounds**: each raw ChatGPT segment, each processed layer, and the stitched long strip
+   per layer in a horizontal-scroll container at 1:1, plus a parallax preview (CSS transforms
+   bound to a scroll slider).
+3. **Anna**: reference sheet raw vs processed; idle/run/jump grids raw vs processed 32×48 cells
+   at ×4; the run cycle animated with CSS `steps()`.
+4. **Wardrobe**: base grid, one look raw, extracted overlay, combined preview.
+5. **Pipeline demo**: `pipeline-demo.png` (raw → keyed → area-averaged → quantized → outlined).
+6. **Prompts**: every `<name>.prompt.txt` shown next to its image.
+7. **Mockups**: the code-painted mockups in this doc, labelled as layout targets.
+8. **Decision box**: what the human is asked to approve (style direction, palette per world,
+   density option, pipeline).
+
+Until the human approves that page, this document stays **pending human approval**.

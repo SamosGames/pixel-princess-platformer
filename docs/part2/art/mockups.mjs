@@ -148,6 +148,8 @@ const GLYPHS = {
   "-": G7("..... ..... ..... .###. ..... ..... ....."), "'": G7("..#.. ..#.. .#... ..... ..... ..... ....."),
   ".": G7("..... ..... ..... ..... ..... ..#.. ..#.."), "·": G7("..... ..... ..... ..#.. ..... ..... ....."),
   " ": G7("..... ..... ..... ..... ..... ..... ....."),
+  "=": G7("..... ..... ##### ..... ##### ..... ....."),
+  "+": G7("..... ..#.. ..#.. ##### ..#.. ..#.. ....."), "!": G7("..#.. ..#.. ..#.. ..#.. ..#.. ..... ..#.."),
 };
 for (const [ch, g] of Object.entries(GLYPHS)) if (g.length !== 35) throw new Error(`glyph ${ch} has ${g.length} cells`);
 function text(img, str, x, y, c, { scale = 1, shadow = null, outlineCol = null, grad = null } = {}) {
@@ -896,7 +898,222 @@ function mockSheet() {
   save("mockup-heroine-palettes.png", img);
 }
 
+// ================================================================================================
+// MOCKUP 5 — Wardrobe / shop (layered looks on the one Anna grid)
+// ================================================================================================
+const GOLDC = { hi: hex("#ffe08a"), base: hex("#e0a93f"), lo: hex("#a36d25") };
+const ECHO_C = hex("#8ff0e6");
+
+// A look is an overlay on the idle pose grid (same 32×48 cell), exactly what the build step
+// extracts as "processed look minus base body". `back` looks paint BEHIND the body.
+function paintLook(kind, col) {
+  const o = canvas(32, 48);
+  const lo = mixc(col, [30, 20, 60], 0.35); const hi = mixc(col, [255, 255, 255], 0.45);
+  switch (kind) {
+    case "tiara": rect(o, 11, 5, 10, 2, GOLDC.base); for (const x of [12, 16, 20]) put(o, x, 4, GOLDC.base); put(o, 16, 3, GOLDC.hi); put(o, 16, 5, col); break;
+    case "bodice":
+      rect(o, 9, 22, 14, 13, col); rect(o, 20, 23, 3, 12, lo); rect(o, 9, 23, 2, 11, hi);
+      rect(o, 13, 22, 6, 2, hex("#f7d4ba")); rect(o, 9, 32, 14, 1, GOLDC.base);
+      ellipse(o, 8, 24, 3, 2.5, hi); ellipse(o, 24, 24, 3, 2.5, col); break;
+    case "gown":
+      trap(o, 33, 46, 16, 7, 14, col);
+      for (let y = 34; y < 46; y++) { const h = 7 + (7 * (y - 33)) / 13; rect(o, 16 - h, y, 2, 1, hi); rect(o, 16 + h - 3, y, 3, 1, lo); }
+      for (let x = 4; x < 29; x += 3) put(o, x, 45, ECHO_C);
+      break;
+    case "skirt": trap(o, 33, 40, 16, 7, 11, col); rect(o, 5, 39, 22, 1, lo); for (let x = 7; x < 26; x += 4) put(o, x, 36, hi); break;
+    case "slippers": rect(o, 9, 45, 6, 2, col); rect(o, 18, 45, 6, 2, col); put(o, 10, 45, hi); put(o, 19, 45, hi); break;
+    case "brooch": rect(o, 15, 26, 3, 3, GOLDC.base); put(o, 16, 27, col); break;
+    case "cape": trap(o, 21, 46, 16, 9, 15, col); rect(o, 1, 21, 3, 25, lo); rect(o, 28, 21, 3, 25, lo); rect(o, 9, 21, 14, 2, GOLDC.base); break;
+  }
+  return o;
+}
+function dressed(looks) {
+  const c = canvas(32, 48);
+  for (const [k, col] of looks) if (k === "cape") blit(c, paintLook(k, col), 0, 0);
+  blit(c, paintAnna({}), 0, 0);
+  for (const [k, col] of looks) if (k !== "cape") blit(c, paintLook(k, col), 0, 0);
+  outline(c, OUT);
+  return c;
+}
+function coinIcon(img, x, y) { ellipse(img, x + 3.5, y + 3.5, 3.5, 3.5, hex("#ff8fb8")); put(img, x + 2, y + 2, hex("#ffe0ee")); rect(img, x + 3, y + 3, 2, 2, hex("#c2447a")); }
+function videoIcon(img, x, y, c = hex("#2a1a44")) { rect(img, x, y, 9, 7, c); trap(img, y + 1, y + 6, x + 5, 2.5, 0.5, [255, 255, 255]); }
+
+function mockWardrobe() {
+  const img = canvas();
+  vgrad(img, 0, 0, W, H, [hex("#1a1236"), hex("#2e2257"), hex("#4a3a78")]);
+  const r = rng(5);
+  for (let i = 0; i < 70; i++) put(img, Math.floor(r() * W), Math.floor(r() * H), [240, 236, 255], 0.2 + r() * 0.5);
+  // header
+  panel(img, 8, 8, W - 16, 30, { fill: hex("#2a1d4c"), border: OUT, hi: hex("#5b47a0") });
+  text(img, "GUARDAROBA", 20, 15, GOLDC.hi, { scale: 2, shadow: OUT });
+  coinIcon(img, 420, 18); text(img, "3450", 432, 18, hex("#fff3d6"), { shadow: OUT });
+  starIcon(img, 480, 18); text(img, "14/18", 492, 18, hex("#fff3d6"), { shadow: OUT });
+  panel(img, W - 40, 12, 24, 22, { fill: hex("#efe6ff"), border: OUT }); text(img, "X", W - 31, 20, hex("#3b2a66"));
+
+  // slot tabs
+  const SLOTS = [["TESTA", "tiara"], ["CORPETTO", "bodice"], ["ABITO", "gown"], ["SCARPE", "slippers"], ["GIOIELLO", "brooch"], ["MANTELLO", "cape"]];
+  SLOTS.forEach(([name], i) => {
+    const y = 46 + i * 46; const sel = i === 2;
+    panel(img, 8, y, 92, 40, { fill: sel ? GOLDC.base : hex("#2d2356"), border: OUT, hi: sel ? GOLDC.hi : hex("#4b3f78") });
+    text(img, name, 16, y + 16, sel ? hex("#2a1a44") : hex("#efe6ff"));
+  });
+
+  // preview: Anna wearing the current combination, on a pedestal (integer ×3 of the game sprite)
+  panel(img, 108, 46, 168, 268, { fill: hex("#1f1740"), border: OUT, hi: hex("#4b3f78") });
+  glow(img, 192, 170, 80, hex("#ffd9a0"), 0.35);
+  ellipse(img, 192, 268, 44, 7, hex("#9d8fc0")); ellipse(img, 192, 266, 40, 5, hex("#c3b6e3"));
+  const combo = [["cape", hex("#3d4fa3")], ["bodice", hex("#f2a6c0")], ["gown", hex("#f2a6c0")], ["slippers", ECHO_C], ["brooch", hex("#ff5fa2")], ["tiara", ECHO_C]];
+  blit(img, dressed(combo), 144, 122, { scale: 3 });
+  text(img, "ABITO ROSA", 192 - textW("ABITO ROSA") / 2, 280, hex("#fff3d6"), { shadow: OUT });
+  text(img, "SET: BALLO DI LUNA 2/6", 192 - textW("SET: BALLO DI LUNA 2/6") / 2, 294, hex("#b8a6ee"));
+
+  // look grid for the ABITO slot: every acquisition path visible, prices transparent
+  const LOOKS = [
+    { name: "JEANS", looks: [], state: "owned" },
+    { name: "ROSA", looks: [["gown", hex("#f2a6c0")]], state: "equipped" },
+    { name: "BALLO", looks: [["gown", hex("#b8a6ee")]], state: "level", label: "LIVELLO 6" },
+    { name: "NOTTE", looks: [["gown", hex("#3d4fa3")]], state: "stars", label: "18" },
+    { name: "LUNA", looks: [["gown", hex("#e9e3ff")]], state: "coins", label: "1200" },
+    { name: "AURORA", looks: [["gown", hex("#ffc76e")]], state: "iap", label: "99 YAN" },
+    { name: "ECO", looks: [["gown", ECHO_C]], state: "weekly", label: "SETTIMANA" },
+    { name: "FORGIA", looks: [["skirt", hex("#ff8a5b")]], state: "coins", label: "800" },
+  ];
+  LOOKS.forEach((lk, i) => {
+    const cx = 286 + (i % 4) * 86; const cy = 46 + Math.floor(i / 4) * 124;
+    const eq = lk.state === "equipped";
+    const locked = ["level", "stars", "weekly"].includes(lk.state);
+    panel(img, cx, cy, 80, 120, { fill: eq ? hex("#3b2a66") : hex("#2d2356"), border: eq ? GOLDC.hi : OUT, hi: hex("#4b3f78") });
+    glow(img, cx + 40, cy + 44, 30, hex("#ffd9a0"), 0.15);
+    blit(img, dressed(lk.looks), cx + 8, cy + 2, { scale: 2, alpha: locked ? 0.45 : 1 });
+    rect(img, cx + 2, cy + 97, 76, 21, hex("#1f1740"), 0.85);
+    text(img, lk.name, cx + 40 - textW(lk.name) / 2, cy + 99, hex("#efe6ff"));
+    const by = cy + 109;
+    if (lk.state === "owned") text(img, "TUO", cx + 40 - textW("TUO") / 2, by, hex("#8ff0e6"));
+    if (eq) { panel(img, cx + 12, by - 2, 56, 11, { fill: GOLDC.base, border: OUT }); text(img, "INDOSSATO", cx + 40 - textW("INDOSSATO") / 2 + 0, by, hex("#2a1a44")); }
+    if (lk.state === "level") { rect(img, cx + 62, cy + 8, 8, 7, hex("#9d8fc0")); ring(img, cx + 66, cy + 7, 3, 1.2, hex("#9d8fc0")); text(img, lk.label, cx + 40 - textW(lk.label) / 2, by, hex("#c9bde8")); }
+    if (lk.state === "stars") { starIcon(img, cx + 26, by); text(img, lk.label, cx + 36, by, hex("#ffd35a")); }
+    if (lk.state === "coins") { coinIcon(img, cx + 22, by); text(img, lk.label, cx + 33, by, hex("#fff3d6")); }
+    if (lk.state === "iap") { panel(img, cx + 14, by - 2, 52, 11, { fill: hex("#8ff0e6"), border: OUT }); text(img, lk.label, cx + 40 - textW(lk.label) / 2, by, hex("#1a1236")); }
+    if (lk.state === "weekly") { ring(img, cx + 12, by + 3, 3.5, 1, hex("#ffd35a")); text(img, lk.label, cx + 20, by, hex("#ffd35a")); }
+  });
+
+  // actions: equip / buy / opt-in rewarded try-on (button only, never automatic)
+  const btn = (label, x, w, primary, video) => {
+    rect(img, x + 2, 324, w, 26, OUT, 0.5);
+    panel(img, x, 322, w, 26, { fill: primary ? GOLDC.base : hex("#efe6ff"), border: OUT, hi: primary ? GOLDC.hi : hex("#ffffff") });
+    const tw = textW(label) + (video ? 13 : 0);
+    if (video) videoIcon(img, x + w / 2 - tw / 2, 332);
+    text(img, label, x + w / 2 - tw / 2 + (video ? 13 : 0), 332, hex("#2a1a44"));
+  };
+  btn("INDOSSA", 286, 110, true, false);
+  btn("COMPRA 1200", 402, 110, false, false);
+  btn("PROVA 1 LIVELLO", 518, 114, false, true);
+
+  vignette(img, 0.25);
+  save("mockup-wardrobe.png", img);
+}
+
+// ================================================================================================
+// MOCKUP 6 — Trick moments (telegraphs) + opt-in rewarded offer surfaces
+// ================================================================================================
+function miniScene(img, x, y, w, h, title) {
+  vgrad(img, x, y, w, h, [hex("#1b1538"), hex("#3a2f66"), hex("#56478a")], 8);
+  const gy = y + h - 22;
+  rect(img, x, gy, w, 22, hex("#9589bb")); rect(img, x, gy, w, 2, hex("#f4eefb")); rect(img, x, gy + 2, w, 5, hex("#ddd4ee")); rect(img, x, gy + 7, w, 1, OUT);
+  for (let bx = x; bx < x + w; bx += 24) rect(img, bx, gy + 8, 1, 14, hex("#6a5f96"));
+  panel(img, x - 1, y - 1, w + 2, h + 2, { fill: [0, 0, 0], border: OUT, alpha: 0 });
+  panel(img, x + 4, y + 4, textW(title) + 10, 13, { fill: hex("#2a1d4c"), border: OUT });
+  text(img, title, x + 9, y + 7, hex("#fff3d6"));
+  return gy;
+}
+const label = (img, s, x, y, c = hex("#c9bde8")) => text(img, s, x, y, c, { shadow: OUT });
+function motion(img, x, y, n = 3, c = ECHO_C) { for (let i = 0; i < n; i++) { line(img, x + i * 4, y - 3, x + i * 4 + 2, y - 7, c); } }
+
+function mockTricks() {
+  const img = canvas();
+  rect(img, 0, 0, W, H, hex("#140f2a"));
+  const PW = 308, PH = 124;
+  const semi = (x, y, w, c = GOLDC.base) => { rect(img, x, y, w, 3, c); rect(img, x, y, w, 1, GOLDC.hi); rect(img, x, y + 3, w, 1, GOLDC.lo); };
+  const anna = paintAnna({});
+
+  // 1. Surprise flowers: an OPTIONAL ledge sprouts into a soft bounce cushion
+  {
+    const x = 8, y = 8; const gy = miniScene(img, x, y, PW, PH, "FIORI A SORPRESA");
+    semi(x + 40, y + 60, 72); semi(x + 190, y + 60, 72);
+    for (let i = 0; i < 6; i++) { const bx = x + 46 + i * 12; rect(img, bx, y + 56, 2, 4, hex("#6cc08a")); put(img, bx, y + 55, hex("#b9f5c8")); sparkle(img, bx + 3, y + 48 - (i % 2) * 4, ECHO_C, 1); }
+    for (let i = 0; i < 6; i++) { const fx = x + 196 + i * 12; ellipse(img, fx, y + 56, 5, 4, hex("#ff9fc4")); put(img, fx, y + 56, hex("#ffe08a")); }
+    motion(img, x + 214, y + 46, 4, hex("#ffd1dc"));
+    label(img, "PRIMA", x + 58, y + 70); label(img, "DOPO: CUSCINO", x + 188, y + 70, hex("#ff9fc4"));
+    rect(img, x + 134, y + 60, 16, 3, ECHO_C);
+    for (let i = 0; i < 5; i++) rect(img, x + 150 + i, y + 57 + i, 1, 9 - i * 2, ECHO_C);
+    blit(img, anna, x + 10, gy - 48, { alpha: 1 });
+    label(img, "PERCORSO OPZIONALE", x + 104, y + 86, hex("#b8a6ee"));
+  }
+  // 2. Shy exit: the goal door hops one cell, twice, with footprints showing where
+  {
+    const x = 324, y = 8; const gy = miniScene(img, x, y, PW, PH, "USCITA TIMIDA");
+    const door = (dx, a) => { rect(img, dx, gy - 40, 26, 40, hex("#5c4a8f"), a); ellipse(img, dx + 13, gy - 40, 13, 10, hex("#5c4a8f"), a, (xx, yy) => yy <= gy - 40); rect(img, dx + 4, gy - 34, 18, 34, hex("#1d1538"), a); };
+    door(x + 150, 0.25); door(x + 196, 0.45); door(x + 242, 1);
+    for (const ex of [x + 250, x + 258]) { rect(img, ex, gy - 26, 3, 4, [255, 255, 255]); put(img, ex + 1, gy - 25, OUT); }
+    for (let i = 0; i < 5; i++) { rect(img, x + 166 + i * 16, gy - 4 - (i % 2) * 2, 4, 2, ECHO_C); }
+    ring(img, x + 222, gy - 50, 18, 1, ECHO_C, 0.8, true);
+    motion(img, x + 270, gy - 44, 3);
+    blit(img, anna, x + 60, gy - 48);
+    label(img, "SALTA 1 CELLA X2 POI RESTA", x + 40, y + 24, hex("#8ff0e6"));
+  }
+  // 3. Fake crown: lilac (not gold), blinks, wobbles; grabbing it = confetti + small consolation
+  {
+    const x = 8, y = 140; const gy = miniScene(img, x, y, PW, PH, "CORONA FINTA");
+    semi(x + 60, y + 64, 64);
+    const cx = x + 92, cy = y + 50;
+    glow(img, cx, cy, 18, hex("#c5b3ff"), 0.4);
+    rect(img, cx - 8, cy, 16, 6, hex("#c5b3ff")); for (const px of [-8, -1, 6]) trap(img, cy - 7, cy, cx + px + 1, 0.5, 2.5, hex("#c5b3ff"));
+    rect(img, cx - 4, cy + 2, 2, 2, OUT); rect(img, cx + 2, cy + 2, 2, 1, OUT);
+    motion(img, cx - 20, cy - 6, 2, hex("#c5b3ff")); motion(img, cx + 14, cy - 6, 2, hex("#c5b3ff"));
+    label(img, "LILLA = NON E ORO", x + 56, y + 76, hex("#c5b3ff"));
+    const r = rng(8);
+    for (let i = 0; i < 26; i++) put(img, x + 200 + r() * 70, y + 30 + r() * 50, [hex("#ff9fc4"), ECHO_C, hex("#ffe08a")][i % 3]);
+    panel(img, x + 214, y + 48, 40, 14, { fill: hex("#efe6ff"), border: OUT }); text(img, "OPS!", x + 223, y + 52, hex("#3b2a66"));
+    coinIcon(img, x + 216, y + 68); label(img, "+50", x + 228, y + 68, hex("#fff3d6"));
+    blit(img, anna, x + 14, gy - 48);
+  }
+  // 4. Echo floor: optional-route tiles crack, jitter, then drop her one cell onto a cushion
+  {
+    const x = 324, y = 140; const gy = miniScene(img, x, y, PW, PH, "PAVIMENTO ECO");
+    const tiles = (tx, ty, ghost) => { for (let i = 0; i < 3; i++) { rect(img, tx + i * 22, ty, 20, 8, hex("#ddd4ee")); rect(img, tx + i * 22, ty, 20, 1, hex("#f4eefb")); if (ghost) rect(img, tx + i * 22 + 2, ty, 20, 8, ECHO_C, 0.25); line(img, tx + i * 22 + 6, ty + 1, tx + i * 22 + 11, ty + 6, OUT); line(img, tx + i * 22 + 11, ty + 6, tx + i * 22 + 15, ty + 3, OUT); } };
+    tiles(x + 30, y + 56, true);
+    for (let i = 0; i < 5; i++) put(img, x + 38 + i * 12, y + 68 + (i % 3) * 4, hex("#ddd4ee"));
+    label(img, "CREPE + TREMOLIO 0.8S", x + 18, y + 24, hex("#8ff0e6"));
+    semi(x + 180, y + 88, 70, hex("#ff9fc4"));
+    for (let i = 0; i < 3; i++) rect(img, x + 186 + i * 22, y + 70 + i * 3, 20, 8, hex("#ddd4ee"), 0.6);
+    label(img, "CUSCINO 1 CELLA SOTTO", x + 160, y + 93, hex("#ff9fc4"));
+    blit(img, anna, x + 110, gy - 48);
+  }
+
+  // Offer surfaces: button-only, at logical breaks, never in an arena
+  panel(img, 8, 272, W - 16, 80, { fill: hex("#1f1740"), border: OUT, hi: hex("#4b3f78") });
+  label(img, "OFFERTE VOLONTARIE", 18, 280, GOLDC.hi);
+  // pre-boss checkpoint card
+  panel(img, 18, 294, 196, 52, { fill: hex("#2d2356"), border: OUT, hi: hex("#4b3f78") });
+  heartIcon(img, 28, 302); label(img, "+1 CUORE PRIMA DEL BOSS", 40, 302, hex("#efe6ff"));
+  panel(img, 28, 318, 96, 20, { fill: GOLDC.base, border: OUT, hi: GOLDC.hi }); videoIcon(img, 34, 324); text(img, "GUARDA", 48, 325, hex("#2a1a44"));
+  panel(img, 132, 318, 74, 20, { fill: hex("#efe6ff"), border: OUT }); text(img, "NO GRAZIE", 142, 325, hex("#3b2a66"));
+  // reward-screen doubler
+  panel(img, 224, 294, 196, 52, { fill: hex("#2d2356"), border: OUT, hi: hex("#4b3f78") });
+  coinIcon(img, 234, 302); label(img, "X2 COCCOLINE: 320", 246, 302, hex("#efe6ff"));
+  panel(img, 234, 318, 96, 20, { fill: GOLDC.base, border: OUT, hi: GOLDC.hi }); videoIcon(img, 240, 324); text(img, "GUARDA", 254, 325, hex("#2a1a44"));
+  panel(img, 338, 318, 74, 20, { fill: hex("#efe6ff"), border: OUT }); text(img, "CONTINUA", 348, 325, hex("#3b2a66"));
+  // colour rule
+  label(img, "TRUCCO = CIANO ECO", 440, 300, ECHO_C);
+  label(img, "PERICOLO = ROSSO", 440, 314, hex("#ff5f7e"));
+  label(img, "TRUCCO NON UCCIDE", 440, 328, hex("#efe6ff"));
+
+  save("mockup-tricks.png", img);
+}
+
 mockLevel1();
 mockBoss();
 mockMenu();
 mockSheet();
+mockWardrobe();
+mockTricks();

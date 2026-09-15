@@ -234,11 +234,44 @@ Part 2 should preserve the existing presentation rules:
 - the Yandex build remains static and belongs to Part 2's own game page. The story must
   not depend on a server or cloud save being available, and Part 2 uses its own native
   leaderboard; no Part 1 save or leaderboard record is migrated.
+- the sequel's title, cover/icon and first 60 seconds show the new worlds, `L` magnet
+  and `V` steam vent. Do not lead moderation with Part 1 art or a door-only opening;
+  the separate-game setting/mechanics rework must be immediately visible.
 
-**Market check:** New accessory layers, collection completion and event-like return
-visits are retention-sensitive. Keep them as open product choices until the market
-research compares cosmetic meta progression and live-event expectations; do not add a
-new currency or ad beat to the story by assumption.
+**Market check:** Wardrobe collection and weekly return play are approved Part 2 scope;
+the remaining market-sensitive choice is catalog density and pacing. Do not add a new
+currency or ad beat to the story by assumption.
+
+## Wardrobe, boosts and replay hooks
+
+Part 2's fresh save opens with a small wardrobe rather than six fixed `afterLevel`
+skins. Each level completion grants one free look; additional looks are collected per
+slot, bought with Coccoline or earned through star ratings, and freely combined. The
+selected outfit is visible on level select and itemized on the receipt. In-world, the
+recovered measures restore the Dama's Atelier, turning each reward into a celebration
+of Anna's style rather than a power upgrade.
+
+Rewarded video remains opt-in and button-only at logical pauses: x2 level Coccoline, +1
+heart at a pre-boss checkpoint outside the boss state machine, start a level with the
+magnet, or try one locked look for that level. Keep the existing Game Over continue.
+Nothing rewarded changes jump physics or the recorded time. No ad appears before Level
+2; fullscreen ads may follow completed Levels 3 and 6 only, never an arena.
+
+Luce also stages warm, non-rage trick moments in Levels 1–6: a fake crown, a floor that
+turns into flowers, or an exit that takes one cheeky step. Every trick is optional or
+clearly telegraphed, never a cheap critical-path death, and is authored as data through
+`build.js` rather than hidden scene logic.
+
+Once a week, Luce rings a **Bell of the Week** for one selected level. It has its own
+native leaderboard and awards an exclusive look. The existing share pill carries the
+level and target time for a "beat my time" challenge; the link needs no new backend.
+The Dama's Atelier also sells transparent-priced cosmetic look bundles through Yandex
+Payments. Purchases are server-saved per Yandex requirements, never pay-to-win, and the
+no-SDK fallback remains fully playable.
+
+**Market check:** These are the approved wardrobe, rewarded-boost, weekly-event and
+cosmetic-IAP bets from the market brief. Keep the value cosmetic or convenience-only;
+do not turn a story beat, boss attempt or recorded-time run into a monetization gate.
 
 ## Cutscene and finale beats
 
@@ -289,6 +322,15 @@ must use the existing sans-serif escape hatch rather than the pixel font.
 - `p2.custode.*` — returning guardian lines used in opening and interludes.
 - `p2.mechanic.magnet.*`, `p2.mechanic.vent.*`, `p2.mechanic.phaseBridge.*` and
   `p2.enemy.charger.*` — tutorial labels and warnings for `L`, `V`, `R`/`~` and `C`.
+- `p2.wardrobe.*` — slot names, look names, free level rewards, Coccoline/star unlocks,
+  equip state, level-select summary and receipt lines.
+- `p2.boost.*` — button labels and confirmations for x2 Coccoline, the checkpoint
+  heart, start-with-magnet and one-level locked-look trials.
+- `p2.trial.*` — Bell of the Week title, level/time target, exclusive-look reward,
+  native leaderboard state and share-pill copy.
+- `p2.shop.*` — Atelier bundle names, transparent prices, purchase/restore states and
+  no-SDK/unavailable messaging.
+- `p2.trick.*` — warm telegraphs and reactions for optional, data-driven trick moments.
 - `p2.objective.*`, `p2.boss.mid.*` and `p2.boss.final.*` — missing-measure objective,
   mid-boss/final-boss names and warnings, note/key prompt and goal-open messages.
 - `p2.reward.*` — the six recovered measures and any new music-themed reward labels.
@@ -306,10 +348,9 @@ keys, with generated files supplied by the existing asset pipeline.
 
 ## Open questions
 
-- **Progression:** Should the six Part 2 measures unlock six new generated accessory
-  layers, or should Anna begin this separate game wearing Part 1's complete outfit and
-  receive only narrative rewards? Either choice belongs to Part 2's fresh save and must
-  not imply save migration.
+- **Wardrobe catalog:** Which look slots, Coccoline prices, star thresholds and bundle
+  groupings make the collection readable without overloading level select or the
+  receipt? The wardrobe itself, free per-level look and cosmetic-only rule are fixed.
 - **Avatar canon:** Should Sognatrice and Avventuriera receive distinct cutscene
   portraits, or should the selected avatar stand in for Anna while dialogue stays
   protagonist-neutral? Default is the existing selected-avatar behavior and one

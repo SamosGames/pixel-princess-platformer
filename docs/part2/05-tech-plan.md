@@ -47,8 +47,8 @@ contract:
 
 | Boss ID | Location | HP | Required result |
 | --- | --- | ---: | --- |
-| `p2.mid` | End of level 3 | 2 | Defeat opens the level goal/key route |
-| `p2.final` | Level 6 | 4 | Defeat completes the playable campaign and enters level 7 |
+| `mid` | End of level 3; La Guardiana dell'Eco | 2 | Defeat opens the level goal/key route; copy uses `p2.boss.mid.*` |
+| `final` | Level 6; La Dama dell'Eco | 4 | Defeat completes the playable campaign and enters level 7; copy uses `p2.boss.final.*` |
 
 Both boss bodies remain tagged `boss`, not `enemy`; only deterministic,
 telegraphed attack objects are hazards. The arena, stomp window, bounce,
@@ -154,14 +154,14 @@ scene:
 ```text
 level 1 -> Soglia degli Echi       -> buildLevel1()
 level 2 -> Chiome delle Campanelle -> buildLevel2()
-level 3 -> Archivio Sospeso        -> buildLevel3() + p2.mid
+level 3 -> Archivio Sospeso        -> buildLevel3() + bossId: "mid"
 level 4 -> Fucina dell'Alba        -> buildLevel4()
 level 5 -> Mare delle Stelle       -> buildLevel5()
-level 6 -> Tetto del Primo Ballo   -> buildLevel6() + p2.final
+level 6 -> Tetto del Primo Ballo   -> buildLevel6() + bossId: "final"
 level 7 -> finale scene            -> no map builder
 ```
 
-`src/part2/config.js` is the single source of truth for `MAX_LEVEL`, tile and
+`src/config.js` is the single source of truth for `MAX_LEVEL`, tile and
 viewport values, player physics, boss timing, mechanic tuning, and release
 feature flags. `build.js` and `mapkit.js` remain data-driven: map characters
 dispatch to builders and level files describe placement. Avoid scene-specific
@@ -191,7 +191,6 @@ reserved for Part 2 and do not collide with the existing legend
 | `R` | Resonance rune trigger | Level 2 | Activates the level's bounded `~` bridge set |
 | `~` | Phase bridge segment | Level 2 | One-way semisolid while its rune is active |
 | `C` | Charger enemy | Level 3 | Reuses the generic enemy update/telegraph path |
-| `T` | Optional trick-moment trigger | Levels 1–6 | Data-driven, telegraphed, and never a critical-path cheap death |
 
 The dispatcher must reject unknown map characters in development/test builds.
 It must not silently reinterpret a new uppercase token as a Part 1 token.
@@ -214,14 +213,13 @@ Required introduction order and baseline tuning from the mechanics section:
   it beside the mid-boss approach. Baseline values are notice distance 320,
   telegraph 0.55 seconds, speed 430, travel 256, recovery 0.8 seconds, and
   at most three chargers in a level.
-- **Levels 1–6 — `T`:** Use `T` for an optional trick trigger whose data
-  carries a stable `trickId`, presentation, telegraph, and route. Examples
-  are a floor blooming into flowers, a cheeky fake crown, or a moving exit.
-  Every trigger is on an optional route or clearly telegraphed, uses a warm
-  non-rage consequence, and is deterministic. It must not remove a life or
-  block the direct goal without a readable escape. `T` is a new token and is
-  intentionally outside the existing legend as well as the required L/V/R/~/C
-  mechanics.
+- **Levels 1–6 — `def.tricks`:** Trick moments are level-definition data, not
+  map tokens. Each entry has `kind` (`flower-floor`, `moving-exit`, or
+  `fake-crown`), `route: "bonus"`, a `telegraphKey`, and explicit
+  `safeEndpoints`. `build.js` consumes `def.tricks` and enforces
+  `MECHANICS.TRICK_MAX_PER_LEVEL = 3`. Every trick is optional or clearly
+  telegraphed, deterministic, warm rather than rage-inducing, and cannot
+  remove a life or block the direct goal without a readable escape.
 
 New token art and behavior must be generated/registered together. A map test
 must prove the tokens appear in their required levels and that `~` is not
@@ -229,8 +227,8 @@ treated as a permanent solid.
 
 > **Market check:** The trick hook is valuable only when it creates surprise
 > and a shareable reaction without making Anna feel punished. A/B the
-> presentation and warmth of `T` moments, not whether the critical path is
-> allowed to kill the player cheaply; that invariant is closed.
+> presentation and warmth of the bonus-route moments, not whether the
+> critical path is allowed to kill the player cheaply; that invariant is closed.
 
 > **Market check:** The magnet, optional phase route, and charger create
 > collection and mastery hooks without adding a meta-progression layer. Keep
@@ -303,29 +301,34 @@ namespace and must not become a general Part 1 compatibility path.
 ## Wardrobe meta and cosmetic data
 
 Replace the six fixed after-level skins with a collectible wardrobe. Keep the
-existing layered-sprite contract, but make each layer a slot with several
-items. The launch data should have at least a default item plus two alternate
-looks in each slot; exact art count remains data-driven.
+existing layered-sprite contract, but make each art slot independently
+collectible and equipable. The launch catalog is exactly six canonical slots
+from `06-art.md`, with five looks in each slot (30 launch looks total): one
+default, one level-completion look, one Coccoline look, one star look, and one
+IAP look. The exact item art is data-driven, but the slot IDs and count are
+not.
 
-The initial slot IDs preserve the current layer order and avoid a renderer
-rewrite:
+Use these normalized slot IDs and the exact Italian display labels from
+`06-art.md`; do not reuse Part 1 layer names:
 
 ```js
-wardrobe.slots = ["skirt", "bodice", "necklace", "crown", "gloves", "cape"];
+wardrobe.slots = ["testa", "corpetto", "abito", "scarpe", "gioiello", "mantello"];
 wardrobe.items = {
-  "skirt.default":   { slot: "skirt",   unlock: "default" },
-  "skirt.echo":      { slot: "skirt",   unlock: { afterLevel: 1 } },
-  "skirt.starlit":   { slot: "skirt",   unlock: { stars: 5 } },
-  "bodice.default":  { slot: "bodice",  unlock: "default" },
-  // ...more data rows, including Coccoline, weekly, and IAP looks
+  "testa.default":    { slot: "testa",    labelKey: "p2.wardrobe.slot.testa",    unlock: "default" },
+  "corpetto.default": { slot: "corpetto", labelKey: "p2.wardrobe.slot.corpetto", unlock: "default" },
+  "abito.default":    { slot: "abito",    labelKey: "p2.wardrobe.slot.abito",    unlock: "default" },
+  "scarpe.default":   { slot: "scarpe",   labelKey: "p2.wardrobe.slot.scarpe",   unlock: "default" },
+  "gioiello.default": { slot: "gioiello", labelKey: "p2.wardrobe.slot.gioiello", unlock: "default" },
+  "mantello.default": { slot: "mantello", labelKey: "p2.wardrobe.slot.mantello", unlock: "default" },
+  // Four more data rows per slot: level, Coccoline, stars, and IAP.
 };
 wardrobe.equipped = {
-  skirt: "skirt.default",
-  bodice: "bodice.default",
-  necklace: "necklace.default",
-  crown: "crown.default",
-  gloves: "gloves.default",
-  cape: "cape.default"
+  testa: "testa.default",
+  corpetto: "corpetto.default",
+  abito: "abito.default",
+  scarpe: "scarpe.default",
+  gioiello: "gioiello.default",
+  mantello: "mantello.default"
 };
 ```
 
@@ -335,20 +338,24 @@ weekly-trial reward, or Yandex product entitlement. Prices are data, not
 scene literals. A look bundle may contain several item IDs, but it never
 contains hearts, time advantages, jump tuning, or Coccoline.
 
-Level completion still grants one free look per level. The six completion
-rewards should fill six different slots in the first campaign, and the reward
-card must name and preview the newly owned item. Star thresholds and Coccoline
-items provide alternate routes to complete a slot. Anna can freely equip any
-owned item in every slot; the level-select preview and the level-7 receipt
-render the complete selected combination, not a hard-coded progression set.
+Level completion still grants one free look per level. Use the approved free
+look mapping: level 1 `mantello:p2_veil`, level 2
+`gioiello:p2_brooch`, level 3 `scarpe:p2_boots`, level 4
+`corpetto:p2_sleeves`, level 5 `testa:p2_hairpin`, and level 6
+`abito:p2_ballgown`. The reward card must name and preview the newly owned
+item. Star thresholds, Coccoline items, weekly exclusives, and IAP bundles
+provide the other catalog routes. Anna can freely combine owned looks; the
+level-select preview and level-7 receipt render the complete combination.
+Paint order remains back (`mantello`) -> body -> `abito` -> `corpetto` ->
+`scarpe` -> `gioiello` -> `testa`, as specified by the art contract.
 
 The durable Part 2 save adds:
 
 ```js
 {
   wardrobe: {
-    owned: ["skirt.default", "skirt.echo"],
-    equipped: { skirt: "skirt.echo", bodice: "bodice.default" },
+    owned: ["mantello.default", "mantello.p2_veil"],
+    equipped: { mantello: "mantello.p2_veil", testa: "testa.default" },
     trial: null
   },
   wallet: {
@@ -454,7 +461,7 @@ game playable and does not re-open the same offer in a loop.
 Fullscreen ads are allowed only after a completed level and only at the
 post-reward transition. The launch schedule is after levels 3 and 6, with at
 most one attempt per completion and no ad in either boss arena, during a
-checkpoint, after Game Over, on level start, or inside any `T` trick moment.
+checkpoint, after Game Over, on level start, or inside any trick moment.
 Level 6's fullscreen opportunity is after La Dama dell'Eco is defeated and
 the reward card is complete; the level-7 finale/leaderboard order remains
 leaderboard first, receipt second. If the SDK or ad method is unavailable,
@@ -597,8 +604,8 @@ source of truth.
 Pipeline additions:
 
 1. Add a Part 2 manifest selecting the six world backgrounds, the two boss
-   variants, the L/V/R/C sprites, `~` bridge visuals, `T` trick indicators,
-   vent warning/active frames, and the finale art/audio.
+   variants, the L/V/R/C sprites, `~` bridge visuals, trick telegraph/prop
+   visuals, vent warning/active frames, and the finale art/audio.
 2. Add generator inputs for any new sprite strips or animation frames. Keep
    frame dimensions and animation metadata aligned with `src/animspec.js`;
    fail generation on missing frames rather than rendering a blank fallback.
@@ -619,12 +626,13 @@ contains a Part 1 entry, Part 1 save prefix, or Part 1 leaderboard ID.
 ### Approved hybrid background pipeline
 
 World backgrounds use the human-approved hybrid approach. OpenRouter calls
-the selected `google/gemini` image model in a browser for source images; the
-build never calls OpenRouter and never depends on a remote image URL. Each
-accepted source is processed deterministically into four per-world parallax
-layer strips (far, mid, near, and foreground/variant), with loop seams,
-palette quantization, aerial perspective, and fixed dimensions applied by the
-Part 2 generator. The runtime consumes only those processed strips.
+the `google/gemini-3.1-flash-image` model through the art tooling's shell/API
+workflow. There is no browser generation route: the build never calls
+OpenRouter and the runtime never depends on a remote image URL. Each accepted
+source is processed deterministically into four per-world parallax layer
+strips (far, mid, near, and foreground/variant), with loop seams, palette
+quantization, aerial perspective, and fixed dimensions applied by the Part 2
+generator. The runtime consumes only those processed strips.
 
 Store the source and provenance files at:
 
@@ -635,13 +643,14 @@ docs/part2/art/gen/openrouter/
   worlds/<world>/rejected/*.json # optional metadata only; no rejected PNGs
 ```
 
-Commit the accepted raw PNGs through Git LFS, with their prompt/model/cost
-records and checksums committed as normal text. Do not commit rejected
-generations or a 500–650-image scratch dump. Cap a committed raw source at 8
-MiB and the complete accepted-source LFS set at 256 MiB; rejected outputs may
-remain in the private generation cache until art sign-off. Raw sources are
-authoring evidence, not Yandex runtime files, and must never enter the static
-archive.
+Git LFS is not installed on the authoring machine, so use ordinary private
+Git objects for accepted raw PNGs. Commit their prompt/model/cost records and
+checksums as normal text; do not add a new LFS dependency just for this
+source archive. Do not commit rejected generations or a 500–650-image scratch
+dump. Cap each committed raw source at 8 MiB and the complete accepted-source
+set at 256 MiB; rejected outputs may remain in the private generation cache
+until art sign-off. Raw sources are authoring evidence, not Yandex runtime
+files, and must never enter the static archive.
 
 The generation budget is 500–650 OpenRouter generations at approximately
 $0.07 each: $35.00 expected at 500, $45.50 at 650, and a $55 hard spend cap
@@ -702,12 +711,23 @@ layers are drawn.
 
 ### Audio sources, generation, and budget
 
-Music is AI-generated in the browser with Suno/ElevenLabs. The downloaded
-files are the source masters: keep them in a documented Part 2 source-audio
-directory with provider, generation date, prompt/track ID, and usage-rights
-metadata. Do not make the Yandex archive fetch music from Suno, ElevenLabs, or
-any other external URL. Export loopable archive tracks from those downloaded
-masters and keep the masters out of the archive.
+Music is generated locally with ACE-Step 1.5 (MIT; commercial use allowed),
+through `npm run gen:music:ai`; there is no browser or runtime generation
+route. Keep raw takes in `music-src/` as `<key>.raw.ogg`, with prompt, model,
+weights, revision, checksum, and license records beside them. Git LFS is not
+installed, so accepted raw masters remain ordinary private Git objects under
+a 48 MiB total source cap and an 8 MiB per-file cap; the current sound-design
+set is about 37 MiB. Rejected takes are not committed, and no raw master ships
+in the Yandex archive.
+
+`npm run gen:music` uses ffmpeg to produce both Opus/Ogg and AAC-LC/M4A.
+Loops use whole AAC frames (1024 samples) with a 40 ms equal-power crossfade;
+the generator applies static EBU R128 gain to -16 LUFS with true peak at or
+below -1.5 dBTP, then validates decode-back length and the seam. The archive
+uses stereo Opus/Ogg at 96 kbps and AAC-LC/M4A at 128 kbps. Load Opus first,
+fall back to M4A when decoding fails, decode
+on first play, keep one decoded track, and release the previous track before
+loading another.
 
 SFX remain deterministic and code-generated through
 `tools/gen/audio.mjs` (currently WAV, 22050 Hz, mono). Add the Part 2 vent,
@@ -717,21 +737,22 @@ cue or a changed sample format.
 
 Use these release audio limits:
 
-- **Music format:** stereo MP3 at 96 kbps CBR, with loop points documented in
-  the manifest. This is the compatibility-oriented archive format; downloaded
-  AI masters may remain WAV/MP3 at their original quality outside the archive.
+- **Music format:** stereo Opus/Ogg at 96 kbps plus AAC-LC/M4A at 128 kbps,
+  both generated by the local pipeline. Each loop is whole-frame aligned and
+  its gain/seam report is in the manifest.
 - **SFX format:** PCM WAV, 22050 Hz, 16-bit, mono, matching
   `tools/gen/audio.mjs`; short cues are preferable to compressed decode work
   during a jump or stomp.
-- **Archive budget:** all Part 2 audio in the staged Yandex archive is ≤4 MiB
-  target and ≤5 MiB hard cap: music ≤3 MiB and generated SFX ≤1 MiB, with the
-  remaining 1 MiB allowance covering metadata or a rare exception. The
-  package check reports music bytes, SFX bytes, and total audio bytes
-  separately.
+- **Archive budget:** one 90-second music loop is ≤1.2 MiB Ogg and ≤1.8 MiB
+  M4A; all music in one codec is ≤12 MiB and both codecs together are ≤30 MiB.
+  Generated SFX are ≤400 KiB. Raw masters count only against the private
+  48 MiB source cap above, not the Yandex archive. The package check reports
+  each codec, SFX, and total audio bytes separately.
 - **Loading:** load the menu track at menu entry, load a level track when that
   level starts, release the previous level track, and load finale music only
-  when entering level 7. Do not preload all six world tracks, menu music,
-  finale music, and boss cues at boot.
+  when entering level 7. Decode lazily and keep only one decoded track. Do not
+  preload all six world tracks, menu music, finale music, and boss cues at
+  boot; the decoded current track is budgeted at about 35 MiB.
 
 > **Market check:** AI music can make the sequel feel distinctive, while large
 > tracks increase first-session cost. Preserve a recognizable theme and let
@@ -793,24 +814,24 @@ level, boss, and i18n test patterns:
 | --- | --- |
 | App/package identity | Part 2 entry boots with the new app ID/config; the staged archive has its own index and contains no Part 1 entry, save key, board ID, legacy API, or Vercel deploy material. |
 | Level registry | Exactly levels 1–6 build; names and order match the locked table; level 7 routes to finale and never to `buildLevel`. |
-| Legend/maps | `L` and `V` occur in level 1, `R` and `~` in level 2, `C` in level 3, and `T` tricks occur in levels 1–6; `~` is not permanent solid; unknown tokens fail loudly. |
+| Legend/maps | `L` and `V` occur in level 1, `R` and `~` in level 2, `C` in level 3, and `def.tricks` entries occur in levels 1–6; `~` is not permanent solid; unknown tokens fail loudly. |
 | Geometry | Critical-path gaps are ≤2 cells, no double-jump path is required, and every spring landing is on `#`, not `=`. |
 | Mechanics | Magnet caps targets/range and excludes keys/bosses; vent collision follows its deterministic cycle; bridge timer and one-way collision work; charger telegraph/recovery and count cap hold. |
-| Bosses | `p2.mid` has 2 HP at the end of level 3; `p2.final` / La Dama dell'Eco has 4 HP in level 6; both use `G`/`makeBoss`, stomp/bounce correctly, attacks are telegraphed hazards, defeat cancels future spawns, and key/goal remain reachable. |
+| Bosses | `bossId: "mid"` / La Guardiana dell'Eco has 2 HP at the end of level 3 and `bossId: "final"` / La Dama dell'Eco has 4 HP in level 6; both use `G`/`makeBoss`, the `p2.boss.mid.*` / `p2.boss.final.*` namespaces, stomp/bounce correctly, attacks are telegraphed hazards, defeat cancels future spawns, and key/goal remain reachable. |
 | Save isolation | A fixture containing Part 1 local keys or a Part 1-shaped cloud object is ignored and unchanged. A missing Part 2 save starts at level 1. No cross-title migration call occurs. |
 | Part 2 cloud merge | Same-app local/cloud union is deterministic, idempotent, monotonic for completion/best times, rejects malformed data, and tolerates offline/API failure. |
-| Wardrobe | Every slot has a default and several catalog items; completion grants one free look per level; stars/Coccoline unlocks, free combination, level-select preview, receipt preview, temporary-look expiry, and invalid-item rejection work. |
+| Wardrobe | The six exact `06-art.md` slots (`testa`, `corpetto`, `abito`, `scarpe`, `gioiello`, `mantello`) each have five launch looks; completion grants the mapped free look per level; stars/Coccoline/IAP unlocks, free combination, level-select preview, receipt preview, temporary-look expiry, and invalid-item rejection work. |
 | Wardrobe merge | Owned item IDs and paid entitlements union only after catalog validation; stars/completed levels merge monotonically; idempotent currency events cannot duplicate Coccoline or undo a purchase; equipped invalid/locked items fall back to defaults. |
 | Leaderboard/finale | Only the Part 2 board ID is submitted; submission failure does not block the level 7 finale; leaderboard opens before the receipt. |
 | Ads/boosts | No ad request occurs before level 2; every rewarded path is button-only and grants exactly its stated x2 currency, pre-boss heart, start magnet, look trial, or Game Over continue; gameplay/audio/timer pause during ads; no boost appears in an arena. |
-| Fullscreen/tricks | Fullscreen occurs only after completed levels 3/6 and never in an arena/start/Game Over/trick; `T` triggers are data-driven, deterministic, optional or telegraphed, and absent from the critical-path cheap-death route. |
-| Weekly trial | UTC ISO week calculation selects one level and `pixel_princess_part2_trial_YYYY_Www`; the 53-board provisioning/fallback path works, native score is time, exclusive look reward is saved, and no backend or campaign-board submission is attempted. |
+| Fullscreen/tricks | Fullscreen occurs only after completed levels 3/6 and never in an arena/start/Game Over/trick; `def.tricks` entries use the three approved kinds, deterministic telegraphs, safe endpoints, and optional bonus routes, with no critical-path cheap death. |
+| Weekly trial | UTC ISO week calculation selects one level and `pixel_princess_part2_trial_YYYY_Www`; the 53-board provisioning/fallback path works (or the approved rolling-board fallback), native score is time, exclusive look reward is saved, and no backend or campaign-board submission is attempted. |
 | Share challenge | The existing share pill emits/clips `challenge=trial`, validated week, level, and positive `timeMs`; receivers see a target card without auto-start or trusted query-based rewards, with native-share and clipboard fallbacks. |
 | Payments/IAP | Catalog price/content is displayed; confirmed purchases restore idempotently into Yandex-backed/cloud-saved entitlements; refunds/revocations follow SDK state; unknown/local-only claims do not unlock looks; no paid gameplay advantage is present. |
 | No-SDK fallback | Without Yandex ads/payments/leaderboards/cloud, earned/free wardrobe, normal levels, trial-local result, receipt, and controls remain playable; purchase/reward buttons hide or degrade without errors. |
 | i18n | IT/EN/RU key sets and placeholders match; exact world/boss strings exist; Italian copy passes feminine-agreement review; long strings fit mobile layouts. |
 | Package/perf | `npm run package:yandex` succeeds, reports archive size/file count/audio bytes, and excludes Part 1-only files. |
-| Audio | Downloaded AI music masters have provenance metadata; archive music is MP3/96 kbps, SFX are generated PCM WAV/22050 Hz mono, audio stays within the 4 MiB target/5 MiB cap, and only the current music track is loaded. |
+| Audio | ACE-Step 1.5 raw takes have prompt/model/revision provenance; `npm run gen:music` emits whole-frame-looped Opus/Ogg 96 kbps and AAC-LC/M4A 128 kbps with static -16 LUFS gain; SFX are generated PCM WAV/22050 Hz mono, audio stays within ≤30 MiB music plus ≤400 KiB SFX, and only one track is decoded. |
 | Mobile | Part 2 menu/start/resume/new-save flow, language/settings, pause/retry, touch controls, viewport/rotation, level transitions, and both boss arenas smoke-test at narrow and wide mobile sizes. |
 
 The top-level scripts should be shaped like this (names are a plan, not a
@@ -837,11 +858,11 @@ does not get to borrow Part 1's archive quota at runtime. The hybrid world
 backgrounds and wardrobe assets make the previous 15 MiB target too tight, so
 set these Part 2 release budgets:
 
-- **Target:** ≤20 MiB uncompressed for the Part 2 staged archive, including
+- **Target:** ≤50 MiB uncompressed for the Part 2 staged archive, including
   generated media and JavaScript; the background sub-budget above remains
-  ≤8.5 MiB and the audio sub-budget remains ≤4 MiB target / ≤5 MiB hard cap.
-- **Warning:** 18 MiB, which triggers asset review before content freeze.
-- **Hard content cap:** 24 MiB, excluding the packager's independent 100 MB
+  ≤8.5 MiB and the audio sub-budget remains ≤30 MiB music plus ≤400 KiB SFX.
+- **Warning:** 45 MiB, which triggers asset review before content freeze.
+- **Hard content cap:** 60 MiB, excluding the packager's independent 100 MB
   rejection ceiling. Do not treat that platform ceiling as a design target.
 - **Runtime:** 1280×720 baseline, one active Kaplay loop, no per-cell physics
   bodies for visual `=`, and no unbounded update/listener registration on
@@ -873,12 +894,12 @@ implementation estimates, not promises.
 | M2 — fresh save/cloud | Implement Part 2-only local/cloud namespace, validation, same-app merge, retry behavior, and isolation fixtures; explicitly omit Part 1 migration. | M (2–3 days) | M0, M1 |
 | M3 — engine contracts | Add builder dispatch for `L`, `V`, `R`, `~`, `C`, config-driven tuning, lazy audio loading, and both `makeBoss` loadouts with softlock tests. | L (4–6 days) | M0, M1 |
 | M4 — six level data | Port/author levels 1–6 under the locked world names, place mechanics in their required introduction levels, and prove geometry/goal routes. | L (5–8 days; each level M) | M3 |
-| M5 — generated presentation/audio | Add Part 2 backgrounds, mechanic/boss/finale art, AI-music source metadata, SFX synthesis inputs, animation metadata, audio/manifest inputs, and deterministic generation checks. | M (3–5 days) | M1, M4 |
+| M5 — generated presentation/audio | Add six-world/four-layer backgrounds, lane-contrast/package gates, mechanic/boss/finale art, ACE-Step source metadata, Opus/AAC music generation, SFX synthesis inputs, animation metadata, and deterministic manifest checks. | M (3–5 days) | M1, M4 |
 | M6 — i18n/leaderboard/finale | Add IT/EN/RU Part 2 keys, feminine Italian review, own native board wiring, level 7 finale order, receipt, and offline fallback. | M (2–3 days) | M2, M4, M5 |
-| M7 — wardrobe meta | Replace fixed skins with slot/item catalog, completion/star/Coccoline rewards, free combination UI, level-select/receipt previews, temporary look trials, and wardrobe/currency/cloud merge. | M (5–8 days) | M2, M4, M5, M6 |
-| M8 — boosts and tricks | Add button-only rewarded offers, exact pre-boss/checkpoint placement, level-3/6 fullscreen schedule, Game Over regression, `T` trick data/build path, and ad/trick telemetry. | M (4–6 days) | M3, M4, M6, M7 |
-| M9 — weekly trial/share | Add UTC week/level rotation, pre-provisioned native board naming, exclusive-look reward, trial fairness rules, and share-pill query links/fallback. | M (4–6 days) | M4, M6, M7 |
-| M10 — cosmetic payments | Add catalog/prices, look-bundle purchase/restore, Yandex-backed/cloud entitlement records, idempotent refunds/revocations, and no-SDK playable fallback. | M (4–6 days) | M2, M6, M7 |
+| M7 — wardrobe meta | Replace fixed skins with the six canonical `06-art.md` slots × five looks (30 launch looks), completion/star/Coccoline rewards, free combination UI, level-select/receipt previews, temporary look trials, and wardrobe/currency/cloud merge. | M (5–8 days) | M2, M4, M5, M6 |
+| M8 — boosts and tricks | Add button-only rewarded offers, exact pre-boss/checkpoint placement, level-3/6 fullscreen schedule, Game Over regression, `def.tricks` kinds/telegraphs/safe endpoints with the max-three guard, and ad/trick telemetry. | M (4–6 days) | M3, M4, M6, M7 |
+| M9 — weekly trial/share | Add UTC week/level rotation, 53-board provisioning check plus rolling-board fallback, exclusive-look reward, trial fairness rules, and share-pill query links/fallback. | M (4–6 days) | M4, M6, M7 |
+| M10 — cosmetic payments | Add transparent catalog/prices, look-bundle purchase/restore, Yandex server-backed inventory plus cloud entitlement snapshot, idempotent refunds/revocations, and no-SDK playable fallback. | M (4–6 days) | M2, M6, M7 |
 | M11 — moderation/store proof | Produce new title/icon/cover/screenshots, first-60-second L/V capture, Part 1 leakage scan, and the support packet for Yandex requirement 3.6. | S (1–2 days) | M4, M5, M7, M8 |
 | M12 — release verification | Run `npm test`, mobile checks, package isolation/size/audio checks, wardrobe/ad/trial/payment tests, low-end performance smoke, engine-sync audit, and Yandex staging smoke with the new app ID. | L (4–6 days) | M8–M11 |
 
@@ -893,11 +914,12 @@ confirmed.
 These do not reopen locked canon:
 
 - What numeric Yandex app ID and exact console leaderboard ID will be assigned
-  to Part 2, and which 53 weekly-trial boards will be provisioned for the
-  first launch year? The code should use release-config placeholders until
-  console provisioning is complete.
-- What is the mid-boss's final display name and portrait treatment? Its
-  contract remains `p2.mid`, 2 HP, end of level 3, and `G`/`makeBoss`.
+  to Part 2? The code should use release-config placeholders until console
+  provisioning is complete.
+- Does the Yandex console allow 53 pre-provisioned weekly native leaderboards
+  per year? Verify the current console/docs limit. If it does not, use one
+  rolling `pixel_princess_part2_trial` board and include the ISO `weekKey` in
+  `extraData`; the UI still labels the active week and level.
 - Which Part 2-generated assets can share source primitives while staying in
   the archive budget? Decide from generated byte measurements, not by adding
   runtime cross-title dependencies.
@@ -907,12 +929,14 @@ These do not reopen locked canon:
 - Which payment product IDs and catalog prices will Yandex approve for the
   initial look bundles, and what purchase-inventory/restore API shape is
   available in the target SDK revision?
-- Which downloaded Suno/ElevenLabs masters are cleared for the gift, and which
-  Part 2 source-audio metadata format will be used for the release audit?
+- Which ACE-Step raw takes are accepted for the gift, and which final
+  `music-src/` provenance record is used for the release audit? The source
+  policy and 48 MiB plain-Git cap are fixed; this only selects accepted takes.
 
 Closed decisions: standalone Yandex title, new app/archive/leaderboard,
 fresh save with no Part 1 migration, six playable levels plus non-playable
 level 7, `MAX_LEVEL=7`, two bosses at 2/4 HP, and the L/V/R/~/C token
-introductions, wardrobe meta, opt-in boost/fullscreen placement, warm
-data-driven trick moments, weekly trial, cosmetic IAP, and the requirement 3.6
-moderation/store-proof gate are not open questions.
+introductions, La Guardiana dell'Eco as the 2-HP mid-boss, wardrobe meta,
+opt-in boost/fullscreen placement, warm data-driven trick moments, weekly
+trial, cosmetic IAP, ACE-Step music, and the requirement 3.6 moderation/store-
+proof gate are not open questions.

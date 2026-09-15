@@ -224,110 +224,131 @@ mechanic in columns 112–125. The final boss body is harmless and the goal has 
 
 ## Trick moments
 
-Each level gets one warm, non-rage “the level is listening” moment inspired by the Level Devil
-hook, but never a cheap critical-path death. The moment is either on an optional route or fully
-telegraphed with a visible cue and a safe wait/jump response. These are data-driven entries in
-the level definition, not a seventh gameplay system and not a new map token:
+Each playable level gets exactly one warm, non-rage “the level is listening” moment. The source
+of truth is the contract in `03-mechanics.md` §5:
+
+- `def.tricks` entries have `kind`, `position`, `route: "bonus"`, `telegraphKey`, and
+  prevalidated `safeEndpoints`.
+- The only kinds are `flower-floor`, `moving-exit`, and `fake-crown`.
+- `MECHANICS.TRICK_MAX_PER_LEVEL = 3` is the global cap; this campaign uses one entry per level,
+  leaving room for later optional variants without changing the contract.
+- Tricks are data-driven and are not new ASCII map tokens. `build.js` dispatches `kind`, while
+  generated art or Kaplay primitives provide the cue. No trick changes jump physics, the
+  recorded time, lives, boss state, or the logical goal gate.
+
+The level data shape is:
 
 ```js
 tricks: [{
-  id: "bloomingFloor",
-  x: 34,
-  route: "optional",
-  telegraphKey: "p2.trick.1.telegraph",
-  effect: "flower-cover",
-  safeFallback: "lane",
+  kind: "flower-floor",
+  position: { x: 34, y: 11 },
+  route: "bonus",
+  telegraphKey: "p2.hint.trick.flower",
+  safeEndpoints: [
+    { x: 33, y: 11 },
+    { x: 35, y: 11 },
+  ],
 }]
 ```
 
-`build.js` dispatches the stable `id` and uses generated art or primitives for the cue. Every
-entry supplies `route`, `telegraphKey`, `effect`, and `safeFallback`; no trick may alter jump
-physics, the recorded time, boss state, or the logical goal gate.
+`position` and every `safeEndpoints` coordinate are authored in map cells. Before content lands,
+the endpoint cells must be checked against the real `=`/`#` geometry and a normal run/jump arc;
+an endpoint is never merely a fallback label. All three kinds show their destination or safe
+surface before the gag begins and remain on a bonus route.
 
-| Level | Trick moment | Tokens/data needed | Safety rule |
+| Level | Kind and placement | Required fields / existing map vocabulary | Safety rule |
 | --- | --- | --- | --- |
-| 1 | Blooming floor: an optional mirror floor briefly opens into harmless flowers, revealing a bonus `o` line. | `#`, `o`; `tricks: [{ id: "bloomingFloor", route: "optional", effect: "flower-cover" }]` | Petal shimmer is visible first; the normal lane remains solid and safe. |
-| 2 | Shy bell: the optional bonus bell moves one cell away, rings, then returns; it is not the exit portal. | `R`, `~`, `o`; `effect: "shy-bell"` | The lower route continues; the bridge timer and rune remain readable and reactivatable. |
-| 3 | Fake crown: a sparkling optional crown bows and becomes a safe `o` pickup, exposing the archive page behind it. | `!`, `+`, `o`; `effect: "fake-crown"` | The sparkle/bow telegraph is cosmetic; no fake collectible causes damage or steals a life. |
-| 4 | Courtesy crumble: an optional forge ledge shakes dramatically, pauses, and reforms with a warm puff instead of punishing the first touch. | `!`, `R`, `~`; `effect: "safe-crumble"` | The lower route is always open; the shake is a readable joke, not a sudden fall on the critical path. |
-| 5 | Backward breeze: petals briefly fly toward the heroine while the optional bonus line appears to reverse. | `B`, `w`, `L`; `effect: "backward-breeze"` | The visual reversal does not reverse player physics or the actual current; the safe lane remains clear. |
-| 6 | Echo door: an optional pre-arena `R`/`~` route shows a false portal shimmer and a friendly Dama silhouette, then fades. | `R`, `~`, `o`; `effect: "echo-door"` | It is outside columns 112–125, never changes the real `>`, and never touches the boss state machine. |
+| 1 — Soglia degli Echi | `flower-floor` after the `V` teaching beat, the danger, and the `L` magnet row; `position: { x: 34, y: 11 }` | `route: "bonus"`; `telegraphKey: "p2.hint.trick.flower"`; `safeEndpoints: [{ x: 33, y: 11 }, { x: 35, y: 11 }]`; nearby `#`, `o` | Petals tremble first; the marked lane/floor stays safe and the patch never becomes a lethal hole. |
+| 2 — Chiome delle Campanelle | `moving-exit` on the optional `R`/`~` bell route; `position: { x: 58, y: 8 }` | `route: "bonus"`; `telegraphKey: "p2.hint.trick.exit"`; `safeEndpoints: [{ x: 58, y: 8 }, { x: 60, y: 8 }]`; `R`, `~`, `o`, and a bonus `>` marker | The destination endpoint lights before the portal moves; only the optional portal shifts, never the real level goal `>`. |
+| 3 — Archivio Sospeso | `fake-crown` on the optional archive shelf before the mid-boss staircase; `position: { x: 72, y: 8 }` | `route: "bonus"`; `telegraphKey: "p2.hint.trick.crown"`; `safeEndpoints: [{ x: 72, y: 8 }, { x: 74, y: 8 }]`; `#`, `o` | The crown wiggles and marks each safe pedestal; after its bounded hops it becomes one normal optional `o`, never a life-taking hazard. |
+| 4 — Fucina dell'Alba | Reuse `flower-floor` on an optional forge ledge after the first `R`/`~` set; `position: { x: 68, y: 11 }` | `route: "bonus"`; `telegraphKey: "p2.hint.trick.flower"`; `safeEndpoints: [{ x: 67, y: 11 }, { x: 69, y: 11 }]`; `#`, `R`, `~` | The lower forge route remains open while the ledge blooms and reforms; it is never a required landing. |
+| 5 — Mare delle Stelle | Reuse `fake-crown` on an optional star-sea perch after the first vent pair; `position: { x: 80, y: 9 }` | `route: "bonus"`; `telegraphKey: "p2.hint.trick.crown"`; `safeEndpoints: [{ x: 80, y: 9 }, { x: 82, y: 9 }]`; `B`, `w`, `#`, `o` | Each perch is visible and safe; the moving prop does not change `B`/`w` physics or hide the lower crossing. |
+| 6 — Tetto del Primo Ballo | Reuse `moving-exit` on an optional approach route before checkpoint x100 and outside the boss arena; `position: { x: 88, y: 8 }` | `route: "bonus"`; `telegraphKey: "p2.hint.trick.exit"`; `safeEndpoints: [{ x: 88, y: 8 }, { x: 90, y: 8 }]`; `R`, `~`, `o`, bonus `>` | The bonus portal finishes moving before x100; it cannot move the real `>`, the checkpoint, or anything in arena columns 112–125. |
 
-### Level 1 trick beat
+### Level 1 trick beat — flower floor after vent and magnet
 
 ```text
-y=7                         ###      o
-y=10                                  L
-y=11  @  ^  V       #       F       M       >
-y=12  ==========  ==  ========================
-y=13  ==========  ==  ========================
+y=7                                  #       o
+y=10                         o  o  o  L
+y=11  @  ^  V       F       #       F       >
+y=12  ==========  ==  ============================
+y=13  ==========  ==  ============================
 ```
 
-`bloomingFloor` owns the optional `#` route at x34; its `safeFallback` is the lane below.
+Read left to right: floor-level `V`, then the danger break and visible `o` row leading to `L`,
+then the optional flower patch shown with existing `#` vocabulary. `def.tricks` supplies the
+flower behavior at x34; the two lane cells at x33 and x35 are prevalidated safe endpoints.
 
-### Level 2 trick beat
+### Level 2 trick beat — moving exit
 
 ```text
-y=7                              ~~~~  o
+y=7                              ~~~~  >  o
 y=10                         R
 y=11  @  ^       F       r       ~       F       >
 y=12  ==========  ==  ===================  ==  =====
 y=13  ==========  ==  ===================  ==  =====
 ```
 
-`shyBell` is attached to the optional `o`, not to `>`; the actual goal never moves.
+The upper `>` is the bonus moving-exit marker from `def.tricks`; the far-right `>` remains the
+static level goal. The `~` cells and lower lane are safe if Anna ignores the bonus route.
 
-### Level 3 trick beat
+### Level 3 trick beat — fake crown
 
 ```text
-y=7                              +   o
-y=8                          !!!!
+y=7                              #   o
+y=8                              #
 y=11  @       C       F       g       F       >
 y=12  ==========  ==  ================================
 y=13  ==========  ==  ================================
 ```
 
-`fakeCrown` is an optional prop/collectible reveal on the upper shelf before the shared boss
-staircase. It cannot alter the mid-boss arena or the pre-boss rewarded-heart break.
+The crown itself is a data-authored prop at the `#` shelf, not a new map character; `o` is the
+normal optional pickup after the final marked pedestal. It resolves before the shared mid-boss
+staircase and cannot alter the pre-boss rewarded-heart break.
 
-### Level 4 trick beat
+### Level 4 trick beat — flower-floor reuse
 
 ```text
 y=9                         ~~~~
-y=10                 R      !!!!  o
+y=10                 R      #    o
 y=11  @  ^  r    F       P       R       F       >
 y=12  ==========  ==  =================  ==  ========
 y=13  ==========  ==  =================  ==  ========
 ```
 
-`safeCrumble` uses the existing `!` art and a data flag for the harmless pause/reform beat;
-the lower lane does not depend on it.
+The optional `#` forge ledge is the flower-floor position; the lower lane stays open while it
+blooms and reforms. The existing `R`/`~` bridge remains independent of the trick.
 
-### Level 5 trick beat
+### Level 5 trick beat — fake-crown reuse
 
 ```text
 y=8                         B B B B B
-y=9                              L     o  o  o
+y=9                              #  o
 y=11  @  ^       F       C     V   w   V     F       >
 y=12  ==========  ==  =================  ==  =====
 y=13  ==========  ==  =================  ==  =====
 ```
 
-`backwardBreeze` is visual-only: its petal direction changes for a short, telegraphed beat,
-while `B`/`w` collision behavior and the safe lower route remain unchanged.
+The data-authored crown hops between the two marked `#`/`o` perch positions; the ordinary lower
+crossing remains available, and the `V` hazards stay on the y=11 lane.
 
-### Level 6 trick beat
+### Level 6 trick beat — moving exit before the arena
 
 ```text
-y=7                              ~~~~~  o
-y=8                         R          S
+y=7                              ~~~~~  >  o
+y=8                         R
+y=10                                      H
 y=11  @  ^       C       F       V       F       >
 y=12  ==========  ==  ================================
 y=13  ==========  ==  ================================
 ```
 
-`echoDoor` ends before the shared arena. Its false portal is scenery/bonus data only; it cannot
-be confused with the logical `>` gate or create a physical wall.
+The bonus `>` is resolved before checkpoint x100 and the staircase; the actual goal is the far
+right `>`. No trick object or endpoint enters arena columns 112–125 or the final boss state.
+
+Market check: no fourth trick kind is needed. The previous `shyBell`, `safeCrumble`,
+`backwardBreeze`, and `echoDoor` variants are dropped in favor of the three canonical kinds;
+measure the optional-route reaction before expanding the contract.
 
 Market check: one optional, streamable trick per level is the smallest way to test the market's
 Level Devil hook without adopting rage deaths. Measure reactions and completion before adding

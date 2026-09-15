@@ -2,7 +2,7 @@
 
 Status: design only. This section proposes a six-level sequel campaign that fits the
 existing six playable levels plus one non-playable finale. It does not change Part 1
-canon or require a new gameplay model.
+canon or require a second movement system.
 
 ## Premise and continuity
 
@@ -25,15 +25,15 @@ must beat the Dama's encounter, then choose to give her a place in the dance. Th
 message for Anna remains personal and affirmative. It should never imply that she
 needs to become someone else to be loved or welcomed.
 
-Default packaging assumption: Part 2 is a standalone sequel build with six new level
-definitions and the same numeric campaign envelope (`MAX_LEVEL = 7`, six playable
-levels followed by a finale). If the project instead combines both campaigns in one
-save, the level IDs, unlock progression and Yandex leaderboard semantics need a
-separate decision; see Open questions.
+Part 2 is a separate Yandex Games release: its own game page, static archive, fresh
+save, and native leaderboard. There is no save migration from Part 1. It reuses or
+forks the engine's six-playable-level envelope: Part 2 levels are numbered 1–6,
+`MAX_LEVEL = 7`, and level 7 is the non-playable finale. Part 1 is canon backstory
+only, not a prerequisite for unlocking this campaign.
 
-**Market check:** A fresh six-level campaign is the clearest sequel onboarding, while
-carryover progress may be stronger for returning-player retention. Reconcile this
-choice with the market worker's findings before locking save continuity.
+**Market check:** The fresh six-level campaign creates a clean acquisition and
+onboarding funnel; compare the market research before adding any cross-title reward
+or account link, which is explicitly out of scope for this sequel.
 
 ## Characters
 
@@ -66,7 +66,11 @@ the Italian must still use feminine forms such as `sei arrivata`, `bentornata` a
 - **La Dama dell'Eco** — the elegant, lonely antagonist and Part 2 boss. She copies
   familiar images from Part 1 because she wants proof that somebody remembers her. Her
   defeat breaks the echo, but the finale reveals that an invitation—not humiliation—was
-  what she needed.
+  what she needed. She has **4 HP** in the Level 6 encounter.
+- **La Guardiana dell'Eco** — a two-heart echo guardian left behind by the Dama in the
+  Archivio Sospeso. She is a **2 HP mid-boss** at the end of Level 3, a warning and
+  tutorial for the Dama's later fight rather than a second final villain. Once freed,
+  she returns the archive's missing page and points Anna toward the forge.
 
 No new character should require a permanent companion AI. Kaplay scenes can show Luce,
 the Custode and the Dama as short-lived cutscene objects, while level data carries only
@@ -90,6 +94,12 @@ The current legend already supports the needed story beats: `#` semisolids, `M`
 springs, `!` crumble platforms, `F` checkpoints, `g`/`S` swoopers, `r` rollers,
 `w` updrafts, `B` breezes, `P` pendulums and `G` the boss.
 
+Part 2 reserves five additional map tokens from the mechanics brief: `L` for the
+optional Coccoline magnet, `V` for the steam vent, `R` for the resonance rune, `~`
+for its phase bridge, and `C` for the charger. These are new explicit `build.js`
+dispatch cases; they must not repurpose any existing token, and an unknown token must
+not silently become a required gameplay element.
+
 **Market check:** Six short chapters, optional high routes and collectible completion
 give the sequel a lightweight repeat-run loop. Validate their expected session length,
 checkpoint cadence and replay value against the retention research before adding any
@@ -108,9 +118,12 @@ briefly shows one of Part 1's six worlds, then loses a note from its soundtrack.
 Custode's first message is: "The door opened. Now let the welcome be heard."
 
 Gameplay hook: a friendly reintroduction using short ravines, a terrace, crumbles and
-one optional spring route. Put every spring beneath a `#` landing surface, with a
-clear ceiling and no hazard on the full bounce arc. The main route remains completable
-with running, jumping and waiting; no bonus reflection is required.
+one optional spring route. Introduce `L` after a visible low row of three `o`
+collectibles: it pulls only nearby ordinary collectibles and is never required for
+completion. Introduce `V` on clear floor after the first thorn; its warning cycle lets
+Anna watch, wait or jump. Put every spring beneath a `#` landing surface, with a clear
+ceiling and no hazard on the full bounce arc. The main route remains completable with
+running, jumping and waiting; no bonus reflection or magnet is required.
 
 ### 2. Chiome delle Campanelle — Bellflower Canopy
 
@@ -120,9 +133,12 @@ from a welcoming bell. At the exit, one clear bell answers from far above, point
 the suspended archive.
 
 Gameplay hook: combine moving platforms with updraft or breeze cells, plus an optional
-spring-to-semisolid canopy. A required ravine is never wider than two cells; a mover
-must reach a readable edge so waiting is a valid solution. The high bell route is a
-bonus route and cannot be the only way forward.
+spring-to-semisolid canopy. The new bell-rune trigger `R` sits beside a safe ledge;
+touching it makes the nearby `~` phase bridge appear for a short window. The bridge
+exposes a visible upper bell route while the lane remains open underneath, so missing
+the lesson costs only optional rewards. A required ravine is never wider than two
+cells; a mover must reach a readable edge so waiting is a valid solution. The high
+bell route cannot be the only way forward.
 
 ### 3. Archivio Sospeso — Floating Archive
 
@@ -132,9 +148,18 @@ written. The Dama dell'Eco steals the page's final line while Anna is crossing t
 shelves, making the antagonist's presence personal without making her cruel.
 
 Gameplay hook: moving shelves, crumble ledges and swoopers create a readable
-"keep moving, then wait" chapter. A feather may expose an optional high shelf, but the
-critical path must work without it and without a double jump. A checkpoint before the
-most dangerous shelf run makes a retry fair.
+"keep moving, then wait" chapter. Introduce the `C` charger after a long flat shelf
+with no nearby ravine or thorn: its flash telegraphs a bounded lunge that Anna can jump
+or wait out. A feather may expose an optional high shelf, but the critical path must
+work without it and without a double jump. A checkpoint before the most dangerous shelf
+run makes a retry fair.
+
+At the archive exit, the Dama's abandoned **Guardiana dell'Eco** rises from the blank
+page as the 2 HP mid-boss. She uses the same `G`/`makeBoss` contract as the final fight:
+harmless body, telegraphed hazards, deterministic recurring vulnerable windows and a
+reachable reward on a flat arena. After the second stomp, a short non-playable beat
+shows the echo guardian becoming still rather than vanishing; she gives back the page
+and says the Dama is hiding in the forge.
 
 **Market check:** The optional feather route is a low-cost replay incentive. Confirm
 whether research supports expanding optional routes or instead prioritises persistent
@@ -160,9 +185,11 @@ the ballroom. The Dama appears in the water's reflection and asks why Anna is st
 trying to make room for somebody who took the music.
 
 Gameplay hook: a long but assisted breeze or updraft crossing, off-phase movers and an
-armored swooper guard. The current should carry the heroine visibly forward while
-leaving a safe route through it. Collectibles can form a single readable glide line;
-do not scatter required pickups across impossible heights.
+armored swooper guard. Reuse `V` vents and one bounded `C` charger after a checkpoint
+as a readable wait-versus-jump combination; their warning windows must leave a safe
+choice rather than demand frame-perfect timing. The current should carry the heroine
+visibly forward while leaving a safe route through it. Collectibles can form a single
+readable glide line; do not scatter required pickups across impossible heights.
 
 ### 6. Tetto del Primo Ballo — Roof of the First Dance
 
@@ -177,14 +204,16 @@ visuals and attack names may change, but the implementation must remain softlock
 - the boss body is harmless; only clearly telegraphed spawned hazards hurt;
 - the phase loop is deterministic and always returns to a vulnerable window;
 - the vulnerable window has a fixed generous duration and does not shrink with damage;
-- the boss can be stomped with the existing single-jump movement, with no double jump;
+- the **4 HP** boss can be stomped with the existing single-jump movement, with no
+  double jump;
 - the defeat drops a reachable note/key on a flat arena;
 - the goal is a logical gate that opens after the defeat and pickup, never a physical
   wall that can trap the heroine.
 
-If the boss borrows the existing stone guardian behavior, `BOSS` remains the single
-source of truth for timing and tuning. If it gets new attacks, those attacks still
-need the same telegraph, safe lane and fixed-window guarantees.
+Both the Level 3 mid-boss and this Level 6 final boss reuse the `G`/`makeBoss` contract.
+`BOSS` or a Part 2 boss variant in `config.js` remains the single source of truth for
+timing and tuning. If either identity gets new attacks, those attacks still need the
+same telegraph, safe lane and fixed-window guarantees.
 
 ## Tone and presentation
 
@@ -202,8 +231,9 @@ Part 2 should preserve the existing presentation rules:
   pixel font;
 - new art is generated through `npm run gen`, then registered through `config.js` and
   `ASSETS`; no hand-edited generated assets or runtime-only asset paths;
-- the Yandex build remains static. The story must not depend on a server, a cloud save
-  being available, or a new leaderboard endpoint.
+- the Yandex build remains static and belongs to Part 2's own game page. The story must
+  not depend on a server or cloud save being available, and Part 2 uses its own native
+  leaderboard; no Part 1 save or leaderboard record is migrated.
 
 **Market check:** New accessory layers, collection completion and event-like return
 visits are retention-sensitive. Keep them as open product choices until the market
@@ -218,19 +248,23 @@ new currency or ad beat to the story by assumption.
 2. **After level 2:** the first recovered measures play for a few seconds. Luce joins
    the route as a visual guide, not a follower.
 3. **After level 3:** the blank archive page reveals the Dama's name and motive. The
-   line should make clear that she is lonely, not secretly controlling Part 1.
+   line should make clear that she is lonely, not secretly controlling Part 1. The
+   2 HP Guardiana dell'Eco then appears as the Dama's abandoned echo guardian; after
+   Anna's second stomp, the short beat frees her and returns the page.
 4. **After level 4:** the Custode returns one forged clasp and says the ballroom was
    built for guests, not for guards.
 5. **After level 5:** the roof lights connect to the ballroom. The Dama's silhouette
    appears at the final arena; no forced dialogue interrupts active play.
-6. **Boss defeat:** the Dama is stunned, the final note/key falls onto the safe flat
-   arena, and the logical goal opens only after Anna collects it.
+6. **Boss defeat:** after four reliable stomps, the Dama is stunned, the final note/key
+   falls onto the safe flat arena, and the logical goal opens only after Anna collects
+   it.
 7. **Part 2 finale:** Anna enters the ballroom with the Custode, Luce and the Dama as
    invited guests. The Dama plays the missing measure; Anna takes the first dance. The
    closing letter addresses Anna directly and says the welcome was always hers to
    share, not a test she could fail.
-8. **Existing platform payoff remains unchanged:** show the final time, offer the
-   leaderboard first, then chain the Coccoline receipt. Keep the current
+8. **Existing platform payoff remains unchanged:** show the Part 2 run time, offer
+   Part 2's own native leaderboard first, then chain the Coccoline receipt. The
+   submitted time is Part 2 only; it is not a Part 1 record. Keep the current
    `leaderboard -> receipt -> menu` order and the unskippable invitation gate.
 
 **Market check:** The leaderboard invitation is the sequel's social/replay hook, while
@@ -251,12 +285,16 @@ must use the existing sans-serif escape hatch rather than the pixel font.
   checkpoint/reward hook that is actually rendered.
 - `p2.character.luce.*` and `p2.character.damaEco.*` — names, titles, descriptions and
   short dialogue.
+- `p2.character.guardianaEco.*` — the mid-boss name, title and freed-guardian lines.
 - `p2.custode.*` — returning guardian lines used in opening and interludes.
-- `p2.objective.*` and `p2.boss.*` — missing-measure objective, boss warning, final
-  note/key prompt and goal-open message.
+- `p2.mechanic.magnet.*`, `p2.mechanic.vent.*`, `p2.mechanic.phaseBridge.*` and
+  `p2.enemy.charger.*` — tutorial labels and warnings for `L`, `V`, `R`/`~` and `C`.
+- `p2.objective.*`, `p2.boss.mid.*` and `p2.boss.final.*` — missing-measure objective,
+  mid-boss/final-boss names and warnings, note/key prompt and goal-open messages.
 - `p2.reward.*` — the six recovered measures and any new music-themed reward labels.
-- `p2.cutscene.opening.*`, `p2.cutscene.interlude.*`, `p2.cutscene.boss.*` — short
-  scene captions and transition lines.
+- `p2.cutscene.opening.*`, `p2.cutscene.interlude.*`, `p2.cutscene.midBoss.*` and
+  `p2.cutscene.finalBoss.*` — short scene captions and transition lines, including the
+  end-of-Level-3 release beat.
 - `p2.finale.*` — heroine title, finale title, personalized letter, final time label
   and any guest-specific closing caption. Reuse the existing leaderboard and receipt
   namespaces unless their copy genuinely changes.
@@ -268,12 +306,10 @@ keys, with generated files supplied by the existing asset pipeline.
 
 ## Open questions
 
-- **Campaign shape:** Is Part 2 a standalone sequel with a fresh six-level save, or a
-  combined twelve-level campaign? Default above is standalone so the current registry,
-  finale flow and `MAX_LEVEL = 7` remain coherent.
 - **Progression:** Should the six Part 2 measures unlock six new generated accessory
-  layers, or should Anna begin Part 2 wearing Part 1's complete outfit and receive only
-  narrative rewards? Do not overwrite the six existing `SKINS` if saves are shared.
+  layers, or should Anna begin this separate game wearing Part 1's complete outfit and
+  receive only narrative rewards? Either choice belongs to Part 2's fresh save and must
+  not imply save migration.
 - **Avatar canon:** Should Sognatrice and Avventuriera receive distinct cutscene
   portraits, or should the selected avatar stand in for Anna while dialogue stays
   protagonist-neutral? Default is the existing selected-avatar behavior and one
@@ -281,7 +317,3 @@ keys, with generated files supplied by the existing asset pipeline.
 - **Boss art budget:** Should the Dama use generated sprites and a new config entry, or
   should the existing primitive boss art be recoloured and relabelled? The behavior
   contract above applies either way.
-- **Yandex records:** If the campaigns share a leaderboard, should the submitted time
-  include Part 1 plus Part 2, or only the current campaign? Decide before adding any
-  new score or save keys; the static archive must remain compatible with the SDK
-  fallback path.

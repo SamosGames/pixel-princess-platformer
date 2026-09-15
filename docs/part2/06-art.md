@@ -17,10 +17,11 @@ Direction changes folded in:
 
 > **Blocked, not tested:** no ChatGPT image exists in this branch yet. This worker has no
 > control of the human's logged-in Chrome: the claude-in-chrome MCP is not configured in the
-> session, and the Kapture MCP has no connected extension. `docs/part2/art/gen/`,
-> `pipeline-demo.png`, the composites and `review.html` wait for that access (§9). Every
-> mockup below is **painted in code** as a layout and colour target, not as the final
-> rendering quality.
+> session, and the Kapture MCP has no connected extension. `review.html` is built with three
+> columns per scene (Part 1 / procedural code mockup / ChatGPT composite). The ChatGPT column
+> is an explicit "blocked" placeholder until `docs/part2/art/gen/`, `pipeline-demo.png` and the
+> ChatGPT composites exist (§9). The code mockups are a real, reviewable alternative
+> pipeline (§4.0), not throwaway sketches.
 
 Deliverables in `docs/part2/art/` today:
 
@@ -36,6 +37,8 @@ Deliverables in `docs/part2/art/` today:
 | `mockup-tricks.png` | Four trick-moment telegraphs + the two rewarded-offer surfaces |
 | `mockup-heroine-palettes.png` | Part 1 vs Part 2 heroine resolution, 6 poses, 6 world palettes, frame budget |
 | `compare-level1.png` | Part 1 Level 1 next to the Part 2 Level 1 mockup |
+| `mockup-level1-iphone.png` | The Level 1 mockup as an iPhone-landscape view: 764×430 letterbox, nearest ×1.194 sampling, DOM pause/audio/touch overlays |
+| `review.html` | Human review page (`ao preview docs/part2/art/review.html`) |
 | `mockups.mjs` | The script that paints every mockup (`node docs/part2/art/mockups.mjs`) |
 
 The mockups run on `tools/gen/px.mjs` (RGBA buffers, deterministic `rng`, Bayer dither,
@@ -431,6 +434,27 @@ Decided by the human: art is generated with ChatGPT image generation in the brow
 downloaded. **Not tested yet** (see the Status block): the design below is complete, and
 Phase 0 proves it on one background layer and Anna idle/run.
 
+### 4.0 Procedural vs ChatGPT vs hybrid — for the human to choose in `review.html`
+
+| | Procedural (code-painted on `px.mjs`, as in the mockups) | ChatGPT-sourced (processed by §4.2) | **Hybrid: ChatGPT backgrounds + procedural sprites/tiles/UI** |
+| --- | --- | --- | --- |
+| Look | Clean, crisp, readable. Mockups are already a clear upgrade (lighting, palettes, HUD, telegraphs). Background richness is capped by how much painting code we write. | Richest painterly backgrounds and light; sprites risk going mushy after reduction to 32×48. | Rich long backgrounds behind a crisp, readable lane. |
+| Consistency | Perfect by construction: shared pose records, palette constants. | Needs reference sheets, normalization, validator; residual drift costs retries. | Drift is confined to backgrounds, where the seam/horizon/palette steps fix it. |
+| Animation volume | Full frame budget; 30 looks are overlays on one pose painter. Appeal ceiling of code-drawn characters. | Key poses only; in-betweens procedural (§4.6). | Full procedural frame budget for everything that moves. |
+| Determinism | Full, generator only. | Build deterministic; generation isn't (source committed). | Same as ChatGPT, backgrounds only. |
+| Effort (1 dev) | ~11–13 weeks | ~13–16 weeks incl. ~500–650 generations | ~12–14 weeks incl. ~250–350 generations (backgrounds + store key art) |
+| Risk | Backgrounds less "stunning" than the human wants. | Seams, palette mush, licensing/copyright (§4.7), rate limits, browser access (**blocked today**). | Style mismatch between painterly layers and crisp sprites; mitigated by palette lock, aerial perspective and the lane-contrast gate (§4.5). |
+| Evidence today | 6 mockups rendered and reviewed by eye | none (blocked) | procedural half proven; background half none |
+
+**Recommendation: hybrid.** Keep the procedural pipeline for sprites, tiles, UI, telegraphs and
+FX: the mockups prove it, it gives the full animation volume, and it stays deterministic. Use
+ChatGPT for the long parallax backgrounds and store key art, where the human asked for
+"stunning", where frame-to-frame consistency matters least, and where §4.4 can repair the
+variance. Generate the ChatGPT Anna reference sheet anyway, as the design reference the
+procedural painter follows. Switch characters to ChatGPT-sourced only if the Phase 0 side-by-side
+in `review.html` shows processed ChatGPT sprites clearly beating the code painter. The choice
+is the human's.
+
 ### 4.1 Root causes of the variance, and the fix for each
 
 Re-rolling prompts treats symptoms. Each kind of variance has a structural cause and a
@@ -619,11 +643,15 @@ human-in-the-loop step whose output is committed source.
 | `mockup-tricks.png` | Four trick telegraphs in the non-lethal colour language; +1 heart and ×2 Coccoline offer cards with equal decline buttons |
 | `mockup-heroine-palettes.png` | Part 1 vs Part 2 heroine size; 6 poses; 6 world palettes; frame budget |
 | `compare-level1.png` | Current Level 1 beside the Level 1 mockup |
+| `mockup-level1-iphone.png` | Same frame at the real iPhone-landscape scale with DOM overlays: HUD, chapter ribbon and lane reads stay clear of the pause/audio buttons and touch pads |
 
 Iteration log (every pass viewed at full size): pass 1 broke the `A` glyph, overlapped the menu
 buttons, left the ballroom roof flat and overflowed text; pass 2 fixed those; pass 3 moved arena
 window lights away from danger markers. The wardrobe and trick mockups were added for the
-scope change.
+scope change. Orchestrator review fixes: the boss mockup's Anna stood ~130 px above the roof in
+an idle-like pose, so she now runs on the ridge in the safe lane with a contact shadow; the
+chapter ribbon moved from y 12 to y 44 native, below the HUD row and the DOM buttons on the
+iPhone view.
 
 Known limits: code-painted mockups show layout, palettes and rules, not the final background
 richness the ChatGPT pipeline targets. Jump/fall poses read close to idle. Nothing is animated.
@@ -701,13 +729,14 @@ meets the bar.
 
 ---
 
-## 9. Human review page (planned, blocked on generations)
+## 9. Human review page
 
 `docs/part2/art/review.html`: a static page with no build step and relative image paths, opened
-with `ao preview docs/part2/art/review.html`. Sections:
+with `ao preview docs/part2/art/review.html`. The ChatGPT column and the ChatGPT-only sections
+show labelled "blocked" placeholders until generations exist. Sections:
 
-1. **Before / after**: each `current-*.png` beside its new composite (1280×720 and the
-   iPhone-landscape crop), for Levels 1, 2, boss and menu.
+1. **Three columns per scene**: Part 1 current / procedural code mockup / ChatGPT-sourced
+   composite, for Level 1 desktop, Level 1 iPhone landscape, the boss arena and the menu.
 2. **Backgrounds**: each raw ChatGPT segment, each processed layer, and the stitched long strip
    per layer in a horizontal-scroll container at 1:1, plus a parallax preview (CSS transforms
    bound to a scroll slider).

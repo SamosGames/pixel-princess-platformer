@@ -572,17 +572,44 @@ function mockLevel1() {
   const title = "1 · SOGLIA DEGLI ECHI";
   const tw = textW(title, 1) + 28;
   const tx = W / 2 - tw / 2;
-  panel(img, tx, 12, tw, 17, { fill: hex("#3b2a66"), border: OUT, hi: hex("#6a58a8") });
-  trap(img, 14, 27, tx - 6, 0.5, 6, hex("#2a1f4c")); trap(img, 14, 27, tx + tw + 6, 0.5, 6, hex("#2a1f4c"));
-  text(img, title, tx + 14, 17, hex("#fff3d6"), { shadow: OUT });
-  starIcon(img, tx + 3, 17, C.gold.base);
-  starIcon(img, tx + tw - 10, 17, C.gold.base);
+  // y=44: below the HUD row and the DOM pause/audio buttons on the iPhone view, above every
+  // gameplay read (the highest lane object here is the moth at y≈143).
+  const TY = 44;
+  panel(img, tx, TY, tw, 17, { fill: hex("#3b2a66"), border: OUT, hi: hex("#6a58a8") });
+  trap(img, TY + 2, TY + 15, tx - 6, 0.5, 6, hex("#2a1f4c")); trap(img, TY + 2, TY + 15, tx + tw + 6, 0.5, 6, hex("#2a1f4c"));
+  text(img, title, tx + 14, TY + 5, hex("#fff3d6"), { shadow: OUT });
+  starIcon(img, tx + 3, TY + 5, C.gold.base);
+  starIcon(img, tx + tw - 10, TY + 5, C.gold.base);
   // audio button slot (DOM, top-right) — kept free
   panel(img, W - 34, 8, 26, 26, { fill: hex("#2a2046"), border: OUT, hi: hex("#4b3f78"), alpha: 0.92 });
   rect(img, W - 26, 17, 4, 8, hex("#efe6ff")); trap(img, 13, 29, W - 20, 1, 6, hex("#efe6ff"));
   ring(img, W - 19, 21, 7, 1, hex("#efe6ff"), 0.8, true);
 
   save("mockup-level1.png", img);
+  return img;
+}
+
+// iPhone-landscape view (932×430 CSS): the game letterboxes (not crops) to 764×430, i.e. the
+// 640×360 native art is sampled at ×1.194 with NEAREST — so this image also shows the §3.1
+// pixel-wobble risk honestly. DOM overlays are placed as measured in current-iphone-level1.png.
+function mockIphone(native) {
+  const VW = 932, VH = 430, CW = 764, CX = 84;
+  const img = canvas(VW, VH);
+  rect(img, 0, 0, VW, VH, hex("#140f2a"));
+  const s = VH / H;
+  for (let y = 0; y < VH; y++)
+    for (let x = 0; x < CW; x++) {
+      const p = get(native, Math.min(W - 1, Math.floor(x / s)), Math.min(H - 1, Math.floor(y / s)));
+      put(img, CX + x, y, p);
+    }
+  const pad = hex("#a7c7e7");
+  ellipse(img, 43, 43, 27, 27, pad, 0.75); rect(img, 35, 31, 5, 24, [255, 255, 255]); rect(img, 46, 31, 5, 24, [255, 255, 255]);
+  ellipse(img, 889, 43, 27, 27, pad, 0.75); rect(img, 878, 36, 7, 14, [255, 255, 255]); trap(img, 30, 56, 890, 1, 8, [255, 255, 255]);
+  for (const bx of [22, 99]) { panel(img, bx, 342, 74, 64, { fill: pad, border: hex("#8aa6c8"), alpha: 0.6 }); }
+  trap(img, 360, 390, 58, 0.5, 14, [255, 255, 255], 0.9); trap(img, 360, 390, 136, 0.5, 14, [255, 255, 255], 0.9);
+  ellipse(img, 862, 360, 48, 48, pad, 0.55); ring(img, 862, 360, 48, 1.5, [255, 255, 255], 0.7);
+  writeFileSync(join(OUT_DIR, "mockup-level1-iphone.png"), encodePNG(img));
+  console.log("wrote mockup-level1-iphone.png");
 }
 
 // ================================================================================================
@@ -721,12 +748,12 @@ function mockBoss() {
   glow(img, dx + 25, dy + 13, 10, ECHO, 0.7); glow(img, dx + 31, dy + 13, 10, ECHO, 0.7);
 
   // Anna jumping in the safe lane (stretch frame), dust ring where she took off
-  const ax = SLOT0 + 3 * SLOT_W + 16, ay = FLOOR - 92;
-  const jump = paintAnna({ tuck: 3, legLx: -1, legRx: 1, armL: -3, armR: 3, hairLift: 2 });
-  blit(img, jump, ax, ay);
-  dith(img, ax + 8, FLOOR - 6, 18, 1, hex("#e9f7f2"), 0.5, 0.7);
-  for (const [ddx, rr] of [[-2, 2], [30, 2], [4, 1], [24, 1]]) ellipse(img, ax + ddx, FLOOR - 3, rr + 1, rr, hex("#e9f7f2"), 0.8);
-  dith(img, ax + 8, FLOOR - 1, 16, 1, OUT, 0.5, 0.45);
+  // Anna stands IN the safe lane on the ridge (feet row 47 → FLOOR - 1), contact shadow + skid dust
+  const ax = SLOT0 + 3 * SLOT_W + 16, ay = FLOOR - 48;
+  const run = paintAnna({ bob: 1, lean: 1, legLx: 3, legRx: -3, liftR: 2, armL: 3, armR: -3 });
+  ellipse(img, ax + 16, FLOOR + 1, 13, 2, OUT, 0.55);
+  for (const [ddx, ddy, rr] of [[-3, -2, 3], [-9, -4, 2], [-14, -2, 2]]) ellipse(img, ax + 8 + ddx, FLOOR + ddy, rr, rr, hex("#e9f7f2"), 0.8);
+  blit(img, run, ax, ay);
 
   vignette(img, 0.55);
 
@@ -1111,7 +1138,7 @@ function mockTricks() {
   save("mockup-tricks.png", img);
 }
 
-mockLevel1();
+mockIphone(mockLevel1());
 mockBoss();
 mockMenu();
 mockSheet();

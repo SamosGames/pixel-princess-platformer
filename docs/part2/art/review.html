@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Part 2 art — human review</title>
+<style>
+  :root { --bg: #140f2a; --panel: #221a44; --line: #3b2f66; --text: #efe6ff; --muted: #b8a6ee; --gold: #e0a93f; --echo: #8ff0e6; --danger: #ff5f7e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header, section { max-width: 1500px; margin: 0 auto; padding: 24px; }
+  header { border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 6px; font-size: 28px; }
+  h2 { margin: 0 0 4px; font-size: 21px; color: var(--gold); }
+  h3 { margin: 18px 0 8px; font-size: 16px; }
+  p { margin: 6px 0; max-width: 90ch; }
+  .status { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #3b2a66; color: var(--echo); font-weight: 600; }
+  nav a { color: var(--muted); margin-right: 14px; }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .cols.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  figcaption b { color: var(--text); }
+  img { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 4px; }
+  .blocked { aspect-ratio: 16 / 9; display: grid; place-items: center; text-align: center; padding: 16px; border: 2px dashed var(--danger); border-radius: 4px; color: var(--danger); background: repeating-linear-gradient(45deg, #1b1433 0 12px, #20183d 12px 24px); }
+  .blocked small { display: block; color: var(--muted); margin-top: 6px; }
+  .phone { aspect-ratio: 932 / 430; }
+  .strip { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .strip img { width: auto; max-width: none; height: 240px; }
+  .strip .row { display: flex; gap: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 8px; vertical-align: top; text-align: left; }
+  th { background: #2d2356; }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  .rec { background: #2d2356; border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 6px; margin-top: 12px; }
+  pre { white-space: pre-wrap; background: #0e0a1e; border: 1px solid var(--line); border-radius: 6px; padding: 12px; font-size: 13px; }
+  .decide label { display: block; margin: 6px 0; }
+  img.zoom { aspect-ratio: 16 / 9; object-fit: contain; background: #0e0a1e; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pixel Princess Part 2 — art direction review</h1>
+  <p><span class="status">Pending human approval</span> Nothing is final until you approve. Full rationale: <code>docs/part2/06-art.md</code>.</p>
+  <p>Every scene has three columns: <b>Part 1 today</b> (real screenshots) / <b>procedural</b> (code-painted on the existing generator toolkit) / <b>ChatGPT-sourced</b> (processed by the deterministic build). The ChatGPT column is <b style="color:var(--danger)">blocked</b>: this worker has no control of your logged-in Chrome (claude-in-chrome not configured, Kapture extension not connected), so no ChatGPT image has been generated yet.</p>
+  <nav><a href="#scenes">Scenes</a><a href="#backgrounds">Backgrounds</a><a href="#anna">Anna</a><a href="#wardrobe">Wardrobe &amp; tricks</a><a href="#pipeline">Pipelines</a><a href="#prompts">Prompts</a><a href="#decide">Decide</a></nav>
+</header>
+
+<section id="scenes">
+  <h2>1. Scenes: Part 1 / procedural / ChatGPT</h2>
+
+  <h3>Level 1 — desktop 1280×720</h3>
+  <div class="cols">
+    <figure><img src="current-desktop-level1.png" alt="Part 1 Level 1 screenshot"><figcaption><b>Part 1</b> — Foresta Incantata, real capture</figcaption></figure>
+    <figure><img src="mockup-level1.png" alt="Procedural Level 1 mockup"><figcaption><b>Procedural</b> — Soglia degli Echi: marble autotiles, 5 layers, baked light, 32×48 Anna, V vent, L magnet, HUD panel</figcaption></figure>
+    <figure><div class="blocked">ChatGPT composite not generated<small>ChatGPT W1 layers + processed Anna + tiles</small></div><figcaption><b>ChatGPT</b> — blocked (no browser control)</figcaption></figure>
+  </div>
+
+  <h3>Level 1 — iPhone landscape (932×430, letterboxed)</h3>
+  <div class="cols">
+    <figure><img src="current-iphone-level1.png" alt="Part 1 iPhone Level 1 screenshot"><figcaption><b>Part 1</b> — emulated iPhone (install banner is the browser, not the game)</figcaption></figure>
+    <figure><img src="mockup-level1-iphone.png" alt="Procedural Level 1 at iPhone scale"><figcaption><b>Procedural</b> — nearest ×1.194 sampling at density 1 (shows the pixel-wobble risk from §3.1); ribbon below the DOM buttons</figcaption></figure>
+    <figure><div class="blocked phone">ChatGPT composite not generated<small>iPhone crop of the ChatGPT composite</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+  </div>
+
+  <h3>Boss arena</h3>
+  <div class="cols">
+    <figure><img src="current-desktop-boss.png" alt="Part 1 boss screenshot"><figcaption><b>Part 1</b> — Custode di Pietra, primitive shapes</figcaption></figure>
+    <figure><img src="mockup-boss.png" alt="Procedural boss mockup"><figcaption><b>Procedural</b> — La Dama dell'Eco, 7-slot debris telegraph with the 3-slot safe lane, boss bar</figcaption></figure>
+    <figure><div class="blocked">ChatGPT composite not generated<small>W6 roof layers + Dama</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+  </div>
+
+  <h3>Menu</h3>
+  <div class="cols">
+    <figure><img src="current-desktop-menu.png" alt="Part 1 menu screenshot"><figcaption><b>Part 1</b></figcaption></figure>
+    <figure><img src="mockup-menu.png" alt="Procedural menu mockup"><figcaption><b>Procedural</b> — world cards, 9-slice buttons, Guardaroba (title is a placeholder)</figcaption></figure>
+    <figure><div class="blocked">ChatGPT composite not generated<small>balcony key art + procedural UI</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+  </div>
+
+  <h3>Other Part 1 captures (reference)</h3>
+  <div class="cols">
+    <figure><img src="current-desktop-level3.png" alt="Part 1 Level 3"><figcaption>Level 3 — maroon on maroon (weakness 3)</figcaption></figure>
+    <figure><img src="current-desktop-finale.png" alt="Part 1 finale"><figcaption>Finale — flat pillars, letter covers the scene</figcaption></figure>
+    <figure><img class="zoom" src="current-desktop-heroine-zoom.png" alt="Part 1 heroine zoom"><figcaption>Anna 16×24, 6× zoom</figcaption></figure>
+  </div>
+</section>
+
+<section id="backgrounds">
+  <h2>2. Backgrounds — layers and stitched long strips</h2>
+  <p>Target: sky, far (×0.2), mid (×0.5), near (×0.8), sparse foreground; long enough for 116–140-cell levels (mid ≈ 5,760 runtime px without repeat). Scroll each strip horizontally.</p>
+  <h3>Part 1 today (1920 px loop, flat silhouettes)</h3>
+  <div class="strip"><div class="row"><img src="../../../assets/backgrounds/forest_mid.png" alt="Part 1 forest mid layer"><img src="../../../assets/backgrounds/forest_mid.png" alt=""></div></div>
+  <div class="strip" style="margin-top:8px"><div class="row"><img src="../../../assets/backgrounds/forest_near.png" alt="Part 1 forest near layer"><img src="../../../assets/backgrounds/forest_near.png" alt=""></div></div>
+  <h3>ChatGPT World 1 — raw segments / processed layers / stitched strip</h3>
+  <div class="cols">
+    <figure><div class="blocked">Raw segments 1–4<small>gen/w1-mid-seg*.png</small></div><figcaption>raw downloads</figcaption></figure>
+    <figure><div class="blocked">Processed layers<small>key-out, area-average, quantize, aerial perspective</small></div><figcaption>processed</figcaption></figure>
+    <figure><div class="blocked">Stitched loop<small>registration, horizon lock, min-error seam</small></div><figcaption>stitched</figcaption></figure>
+  </div>
+</section>
+
+<section id="anna">
+  <h2>3. Anna — reference sheet and poses</h2>
+  <div class="cols">
+    <figure><img class="zoom" src="current-desktop-heroine-zoom.png" alt="Part 1 Anna"><figcaption><b>Part 1</b> — 16×24</figcaption></figure>
+    <figure><img src="mockup-heroine-palettes.png" alt="Procedural Anna poses and world palettes"><figcaption><b>Procedural</b> — 32×48, six poses from one pose painter, six world palettes, frame budget</figcaption></figure>
+    <figure><div class="blocked">ChatGPT reference sheet + idle/run/jump<small>raw vs processed 32×48 cells, pipeline-demo.png</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+  </div>
+</section>
+
+<section id="wardrobe">
+  <h2>4. Wardrobe, shop and trick moments (scope addition)</h2>
+  <div class="cols two">
+    <figure><img src="mockup-wardrobe.png" alt="Wardrobe and shop mockup"><figcaption><b>Procedural</b> — 6 slots, look states (owned, equipped, level, stars, Coccoline, IAP, weekly), opt-in try-on button</figcaption></figure>
+    <figure><img src="mockup-tricks.png" alt="Trick telegraphs and rewarded offers mockup"><figcaption><b>Procedural</b> — trick telegraphs in echo cyan (never danger red, never lethal); +1 heart and ×2 Coccoline offer cards</figcaption></figure>
+  </div>
+</section>
+
+<section id="pipeline">
+  <h2>5. Pipeline comparison</h2>
+  <table>
+    <tr><th></th><th>Procedural (code-painted)</th><th>ChatGPT-sourced</th><th>Hybrid: ChatGPT backgrounds + procedural sprites/tiles/UI</th></tr>
+    <tr><td>Look</td><td>Crisp, readable; already a clear upgrade. Background richness capped by painting code.</td><td>Richest painterly backgrounds; sprites risk mush at 32×48.</td><td>Rich backgrounds behind a crisp lane.</td></tr>
+    <tr><td>Consistency</td><td>Perfect by construction.</td><td>Reference sheets + validator; drift costs retries.</td><td>Drift only in backgrounds, fixed by seam/horizon/palette steps.</td></tr>
+    <tr><td>Animation volume</td><td>Full frame budget; 30 looks as overlays.</td><td>Key poses only; in-betweens procedural.</td><td>Full procedural budget for everything that moves.</td></tr>
+    <tr><td>Determinism</td><td>Full.</td><td>Build yes; generation no (source committed).</td><td>Same as ChatGPT, backgrounds only.</td></tr>
+    <tr><td>Effort</td><td>~11–13 weeks</td><td>~13–16 weeks, ~500–650 generations</td><td>~12–14 weeks, ~250–350 generations</td></tr>
+    <tr><td>Risk</td><td>Backgrounds less "stunning".</td><td>Seams, palette mush, licensing, rate limits, browser access (blocked).</td><td>Style mismatch; mitigated by palette lock, aerial perspective, lane-contrast gate.</td></tr>
+    <tr><td>Evidence today</td><td>6 mockups rendered and reviewed</td><td>none</td><td>procedural half only</td></tr>
+  </table>
+  <div class="rec"><b>Recommendation: hybrid.</b> Procedural sprites, tiles, UI, telegraphs and FX (proven, full animation volume, deterministic); ChatGPT for long parallax backgrounds and store key art. The ChatGPT Anna sheet becomes the design reference for the painter; switch characters to ChatGPT only if the Phase 0 side-by-side clearly wins.</div>
+  <h3>Deterministic processing for ChatGPT sources</h3>
+  <p>magenta key-out → crop → normalize (head height, feet baseline) → area-average downsample → OKLab quantize to the locked world palette (sprites: no dither; backgrounds: 2×2 Bayer) → outline / flash / aerial perspective → segment registration, horizon lock, min-error seam, loop → slice → <code>assets/</code> + source hashes → validation and lane-contrast gate. <code>npm run gen</code> never calls ChatGPT; raw PNGs + prompts are committed source.</p>
+</section>
+
+<section id="prompts">
+  <h2>6. Prompts</h2>
+  <p>No prompt has been sent yet (blocked). These are the planned fixed blocks; every download will be saved with its exact prompt as <code>gen/&lt;name&gt;.prompt.txt</code> and shown here.</p>
+  <h3>Style sheet (all art)</h3>
+  <pre>Cozy fairy-tale 16-bit pixel art look, clean shapes, soft hue-shifted shading, light from the upper left. No text, no logos, no UI, no watermark, no signature.</pre>
+  <h3>World 1 block — Soglia degli Echi</h3>
+  <pre>Moonlit mirrored antechamber of a fairy-tale palace at night. Palette: deep indigo #140f2a, violet #3a2f66, periwinkle #6564a0, lilac marble #bdb2d8, moon-white #f4eefb, gold #e0a93f, echo cyan #8ff0e6, soft rose #ff8fa3. Light from the upper left (moon through tall arched windows). Horizon at 62% of image height. Orthographic side view for a 2D platformer background.</pre>
+  <h3>Layer: mid, segment 1</h3>
+  <pre>[STYLE] [WORLD 1] Mid-ground layer only: tall gilded mirrors showing faint teal reflections of a pine forest, eastern rooftops and a castle, between fluted marble pillars, soft light shafts. Isolated shapes on a flat solid #FF00FF magenta background, nothing touching the top or bottom edge, flat bottom edge. Wide landscape image.</pre>
+  <h3>Layer: mid, segment n+1 (edit of segment n)</h3>
+  <pre>Extend this scene to the right as a direct continuation. Keep the exact horizon height, light direction, palette and the magenta background. The left edge must continue the right edge of the attached image.</pre>
+  <h3>Anna reference sheet</h3>
+  <pre>[STYLE] Original cute chibi princess-adventurer character reference sheet: long brown hair with a small gold bell hairpin, light "sugar-paper" blue quilted puffer jacket, dark blue jeans, white sneakers. Front, side and back views, full body, equal height, feet on a thin black baseline, colour swatches with hex codes below. Flat solid #FF00FF background.</pre>
+</section>
+
+<section id="decide">
+  <h2>7. Decisions for you</h2>
+  <div class="decide">
+    <label><input type="checkbox" disabled> Pipeline: <b>hybrid</b> (recommended) / procedural only / ChatGPT for everything</label>
+    <label><input type="checkbox" disabled> Style direction of the procedural mockups (Level 1, boss, menu)</label>
+    <label><input type="checkbox" disabled> Six world palettes (§3.2)</label>
+    <label><input type="checkbox" disabled> Art density ×2 at unchanged runtime sizes, pending the real-iPhone wobble test (§3.1)</label>
+    <label><input type="checkbox" disabled> Wardrobe: 6 slots × 5 looks at launch, trick colour rule (cyan = trick, red = danger)</label>
+    <label><input type="checkbox" disabled> Unblock ChatGPT: enable claude-in-chrome or connect Kapture for this worker, or drop raw PNGs + prompts into <code>docs/part2/art/gen/</code></label>
+  </div>
+  <p>Reply to the orchestrator with your choices; checkboxes are not saved.</p>
+</section>
+</body>
+</html>

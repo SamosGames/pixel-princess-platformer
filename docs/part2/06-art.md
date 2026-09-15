@@ -1,7 +1,9 @@
 # Part 2 — Art direction
 
-**Status: pending human approval.** Nothing here is final until the human signs off on the
-review page (§9). No game code, generator module or `assets/` file changed.
+**Status: approved — hybrid** (human decision after `review.html`). World backgrounds are
+AI-generated source processed deterministically. Sprites, tiles and UI are procedural, or AI key
+poses for characters, all quantized to one locked palette per world. No game code, generator
+module or `assets/` file changed; implementation follows §7.
 
 Goal from the brief: Part 2 must look **noticeably better** than Part 1 while keeping the
 invariants in `CLAUDE.md`: generated assets only, the mobile render path, culling and
@@ -488,7 +490,7 @@ keeps thin lines better than averaging (measured in §4.2), and is still fully d
 | Risk | Backgrounds less "stunning" than the human wants. | Seams (plain "extend right" fails; outpaint canvas works), identity drift, lane readability (Anna below gate), licensing/exclusivity (§4.7, §4.10). | Style mismatch between painterly layers and crisp sprites; mitigated by palette lock, aerial perspective and the lane-contrast gate (§4.5). |
 | Evidence today | 6 mockups rendered and reviewed by eye | 12 real generations via Gemini 3.1 Flash Image, processed World 1 strips, Anna cells and composites (§4.10) | both halves have evidence; the lane gate still fails for Anna |
 
-**Recommendation: hybrid.** Keep the procedural pipeline for sprites, tiles, UI, telegraphs and
+**Decision (human-approved): hybrid.** Keep the procedural pipeline for sprites, tiles, UI, telegraphs and
 FX: the mockups prove it, it gives the full animation volume, and it stays deterministic. Use
 AI generation for the long parallax backgrounds and store key art, where the human asked for
 "stunning", where frame-to-frame consistency matters least, and where §4.4 can repair the
@@ -794,8 +796,73 @@ the bottom row.
 8. **Isolated 1-px highlights are lost** in reduction (§4.2 prototype evidence). Point lights
    and emblems belong in sprites.
 
-**Still not tested:** boss arena and menu backgrounds, Worlds 2–6, wardrobe look edits, real
-device frame time with the long strips.
+### 4.11 Follow-ups after the hybrid approval (2026-09-15)
+
+**1. Lane readability: the cause, fixed in processing.** The failing gate had two causes:
+- the background's value/chroma range in the band behind the lane (bright cyan mirror glass);
+- dark near-layer verticals crossing that band.
+
+Three deterministic rules now handle it:
+
+- **Lane-band compression** (mid and near layers, native rows 232–300 with a 56-row dithered
+  fade-in): in OKLab, `L' = Lmid + (L − Lmid)·k` and chroma capped (`Lmid 0.32`, `k 0.40/0.35`,
+  `C ≤ 0.035/0.03`), then re-snapped to the locked palette. `Lmid` is set *away* from Anna's mean
+  L (0.49). A first pass at 0.50 compressed the background toward her own tone, and a 24-row fade
+  still drew a visible edge.
+- **Near layer moved out of the band**: its base moves from row 292 to 350, so the balustrade and
+  post bases sit behind the ground tiles.
+- **Sprite rule**: 1 px dark outline (`#24172e`) plus a 1 px light rim (`#f3f5f9`, Anna's palette)
+  on the moon side.
+
+The gate now reports two metrics: **silhouette separation** (the sprite's edge pixels against
+the pixels just outside it; what readability depends on) and the earlier **per-pixel mean ΔL**.
+
+| Scene | View | Silhouette separation | Per-pixel mean ΔL | Lane top row ΔL |
+| --- | --- | ---: | ---: | ---: |
+| Level 1, before | desktop / iPhone | 0.148 / 0.148 | 0.220 / 0.225 | 0.487 / 0.493 |
+| **Level 1, after** | desktop / iPhone | **0.386 / 0.387** | 0.235 / 0.244 | 0.419 / 0.426 |
+| **Boss arena (W6)** | desktop / iPhone | **0.411 / 0.412** | 0.228 / 0.233 | 0.465 / 0.473 |
+
+Silhouette separation passes the 0.25 gate everywhere, 2.6× better on Level 1. The per-pixel
+mean rose but stays just under 0.25: in a mid-tone sprite, hair and jeans sit close to any
+plausible background, so that metric has a ceiling set by the sprite. **Proposed gate:
+silhouette ≥ 0.25 AND per-pixel ≥ 0.20** (all scenes pass). Until the human confirms, the old
+per-pixel gate is reported as not met.
+
+**2. World 1 tiles.** A procedural marble kit in the locked W1 palette (`docs/part2/art/tiles.mjs`)
+has:
+- a light lip with gold cornice, brick courses and veins;
+- dark-outlined W/E/S edges and rounded outer corners;
+- a darker depth fill two cells down;
+- a contact shadow where a terrace wall meets a lower floor.
+
+It autotiles from a 4-bit exposure mask (off-screen columns count as solid, so there are no false
+caps at the frame border). It replaces the grey Part 1 tiles in the composite. A World 6
+verdigris-copper kit with a gold ridge uses the same code; its shingle rows read flatter than
+intended and need another pass.
+
+**3. Boss arena (World 6) and menu.** Five new generations, same model and route
+(`google/gemini-3.1-flash-image` via OpenRouter, $0.0673–0.0674 each, **17 images, $1.151 total**;
+≈$0.31 left on the shared balance). Outcomes:
+- `w6-sky`: accepted.
+- `w6-far-seg1`, `w6-mid-seg1`: accepted with a **committed source fix**. Both drew their own moon
+  into a cut-out layer, and `gen/<name>.fix.json` cuts that disc right after key-out. Automatic
+  removal was tried three ways (alpha components on the base line; colour-aware growth;
+  running-mean growth). Each either kept the moon or cut W1 mirror glass, light shafts and roof
+  tiles, so it was removed from the pipeline.
+- `w6-mid`: a single segment, so its loop shows a seam (wrap-edge diff 80 vs 17 adjacent) until
+  an outpaint continuation is generated.
+- `w6-near-seg1`: **rejected** (a castle and an opaque bottom fill instead of a low railing). The
+  arena composite uses sky + far + mid.
+- `menu-bg`: accepted; the procedural menu UI sits on top.
+
+Composites: `proc/ai-composite-boss(-iphone).png`, `proc/ai-composite-menu(-iphone).png`.
+
+**4. Small fixes** (already pushed): «NON È ORO»; the wardrobe action bar follows the selected
+look; Cyrillic pixel font = Tiny5 (§3.8) with `mockup-wardrobe-ru.png`.
+
+**Still not tested:** Worlds 2–5, `w6-near` regeneration and a `w6-mid` outpaint continuation,
+wardrobe look edits, real-device frame time with the long strips.
 
 ---
 
@@ -921,4 +988,4 @@ this run). Sections:
 8. **Decision box**: what the human is asked to approve (style direction, palette per world,
    density option, pipeline).
 
-Until the human approves that page, this document stays **pending human approval**.
+The human reviewed that page and **approved the hybrid direction**.

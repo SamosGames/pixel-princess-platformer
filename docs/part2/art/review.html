@@ -54,8 +54,8 @@
 <body>
 <header>
   <h1>Pixel Princess Part 2 — art direction review</h1>
-  <p><span class="status">Pending human approval</span> Nothing is final until you approve. Rationale: <code>docs/part2/06-art.md</code>. Prompts: <code>docs/part2/art/gen/PROMPTS.md</code>.</p>
-  <p>Every scene: <b>Part 1 today</b> (real screenshot) / <b>procedural</b> (code-painted on the existing generator toolkit) / <b>AI-sourced</b> (generated with <b>Google Gemini 3.1 Flash Image</b> via the OpenRouter API, then processed by a deterministic prototype: key-out, registration and seams, quantize-then-vote to the World 1 palette, loops). No browser login was used. AI generation covers <b>World 1 backgrounds and Anna only</b>; the boss and menu AI columns were not generated (budget cap).</p>
+  <p><span class="status">Approved — hybrid</span> AI-generated world backgrounds + procedural tiles/UI + processed AI key poses, one locked palette per world. Rationale: <code>docs/part2/06-art.md</code>. Prompts: <code>docs/part2/art/gen/PROMPTS.md</code>.</p>
+  <p>Every scene: <b>Part 1 today</b> (real screenshot) / <b>procedural</b> (code-painted on the existing generator toolkit) / <b>AI-sourced</b> (generated with <b>Google Gemini 3.1 Flash Image</b> via the OpenRouter API, then processed by a deterministic prototype: key-out, registration and seams, quantize-then-vote to the World 1 palette, loops). No browser login was used. AI generation covers World 1 backgrounds, Anna, the World 6 boss arena and the menu background (17 images, $1.151).</p>
   <nav><a href="#scenes">Scenes</a><a href="#parallax">Parallax</a><a href="#backgrounds">Backgrounds</a><a href="#anna">Anna</a><a href="#wardrobe">Wardrobe &amp; tricks</a><a href="#pipeline">Pipelines</a><a href="#provenance">Provenance</a><a href="#decide">Decide</a></nav>
 </header>
 
@@ -65,7 +65,7 @@
   <div class="cols">
     <figure><img src="current-desktop-level1.png" alt="Part 1 Level 1 screenshot"><figcaption><b>Part 1</b> — Foresta Incantata, real capture</figcaption></figure>
     <figure><img src="mockup-level1.png" alt="Procedural Level 1 mockup"><figcaption><b>Procedural</b> — marble autotiles, baked light, 32×48 Anna, V vent, L magnet, HUD</figcaption></figure>
-    <figure><img src="proc/ai-composite-level1.png" alt="AI-sourced Level 1 composite"><figcaption><b>AI-sourced</b> — generated sky + far + mid + near layers, processed Anna (32×48 ×2), <b>Part 1 tiles</b> tinted to World 1 (the grey lane shows the style gap a hybrid would close with the procedural marble kit)</figcaption></figure>
+    <figure><img src="proc/ai-composite-level1.png" alt="AI-sourced Level 1 composite"><figcaption><b>AI-sourced (hybrid)</b> — generated W1 layers with the lane-band rule, procedural World 1 marble tiles (autotiled), processed Anna with dark outline + light rim</figcaption></figure>
   </div>
   <h3>Level 1 — iPhone landscape (932×430, letterboxed, nearest ×0.597)</h3>
   <div class="cols">
@@ -77,15 +77,26 @@
   <div class="cols">
     <figure><img src="current-desktop-boss.png" alt="Part 1 boss"><figcaption><b>Part 1</b></figcaption></figure>
     <figure><img src="mockup-boss.png" alt="Procedural boss mockup"><figcaption><b>Procedural</b> — La Dama dell'Eco, debris telegraph, safe lane</figcaption></figure>
-    <figure><div class="blocked">Not generated<br>(World 6 out of this run's budget)</div><figcaption><b>AI-sourced</b> — next run</figcaption></figure>
+    <figure><img src="proc/ai-composite-boss.png" alt="AI-sourced boss arena composite"><figcaption><b>AI-sourced (hybrid)</b> — generated W6 sky/far/mid (near layer rejected), procedural copper roof tiles, procedural Dama + telegraphs + HUD, processed Anna</figcaption></figure>
   </div>
   <h3>Menu</h3>
   <div class="cols">
     <figure><img src="current-desktop-menu.png" alt="Part 1 menu"><figcaption><b>Part 1</b></figcaption></figure>
     <figure><img src="mockup-menu.png" alt="Procedural menu mockup"><figcaption><b>Procedural</b> — world cards, 9-slice buttons (title is a placeholder)</figcaption></figure>
-    <figure><img class="soft" src="gen/w1-keyart.png" alt="AI World 1 key art"><figcaption><b>AI-sourced</b> — raw World 1 key art (menu/store backdrop candidate; not processed)</figcaption></figure>
+    <figure><img src="proc/ai-composite-menu.png" alt="AI-sourced menu composite"><figcaption><b>AI-sourced (hybrid)</b> — generated balcony background (quantized to W1), procedural logo/cards/buttons, processed Anna idle ×3</figcaption></figure>
   </div>
-  <p id="contrast">Lane contrast (OKLCH L, gate 0.25): <span id="contrast-values">loading proc/report.json…</span></p>
+  <h3>AI-sourced iPhone views</h3>
+  <div class="cols">
+    <figure><img src="proc/ai-composite-level1-iphone.png" alt="Level 1 iPhone"><figcaption>Level 1 — iPhone landscape</figcaption></figure>
+    <figure><img src="proc/ai-composite-boss-iphone.png" alt="Boss iPhone"><figcaption>Boss arena — iPhone landscape</figcaption></figure>
+    <figure><img src="proc/ai-composite-menu-iphone.png" alt="Menu iPhone"><figcaption>Menu — iPhone landscape</figcaption></figure>
+  </div>
+  <h3>Lane readability gate (OKLCH L, from proc/report.json)</h3>
+  <div class="cols two">
+    <figure><img src="proc/ai-composite-level1-before-lanefix.png" alt="Level 1 before lane fix"><figcaption>Before: no lane-band rule, near layer over the lane, no rim</figcaption></figure>
+    <figure><img src="proc/ai-composite-level1.png" alt="Level 1 after lane fix"><figcaption>After: lane-band value/chroma compression, near layer moved behind the tiles, Anna light rim</figcaption></figure>
+  </div>
+  <div id="gates" style="margin-top:10px">loading proc/report.json…</div>
 </section>
 
 <section id="parallax">
@@ -110,6 +121,17 @@
     <figure><img class="soft" src="gen/w1-near-seg1.png" alt="raw near seg1"><figcaption>w1-near-seg1</figcaption></figure>
     <figure><img class="soft" src="gen/w1-near-seg2.png" alt="raw near seg2"><figcaption class="bad">w1-near-seg2 — "extend right": cost 145, rejected → kept as a separate loop variant</figcaption></figure>
   </div>
+  <h3>AI World 6 + menu — raw generations</h3>
+  <div class="cols two">
+    <figure><img class="soft" src="gen/w6-sky.png" alt="raw W6 sky"><figcaption>w6-sky (opaque)</figcaption></figure>
+    <figure><img class="soft" src="gen/w6-far-seg1.png" alt="raw W6 far"><figcaption>w6-far-seg1 — drew its own moon; cut by the committed <code>gen/w6-far-seg1.fix.json</code></figcaption></figure>
+    <figure><img class="soft" src="gen/w6-mid-seg1.png" alt="raw W6 mid"><figcaption>w6-mid-seg1 — moon cut by <code>gen/w6-mid-seg1.fix.json</code>; single segment, so the loop shows a seam until an outpaint continuation exists</figcaption></figure>
+    <figure><img class="soft" src="gen/w6-near-seg1.png" alt="raw W6 near"><figcaption class="bad">w6-near-seg1 — rejected by the checklist: a castle and an opaque bottom fill instead of a low railing</figcaption></figure>
+    <figure><img class="soft" src="gen/menu-bg.png" alt="raw menu background"><figcaption>menu-bg — balcony, lanterns, calm left two thirds for UI</figcaption></figure>
+  </div>
+  <h3>Procedural tile kits (locked palettes, 4-bit autotile masks + terrace contact shadow)</h3>
+  <figure><img src="proc/tiles-w1-atlas-x4.png" alt="World 1 marble tile atlas"><figcaption>World 1 marble: 16 exposure masks, depth fill, contact variants (×4)</figcaption></figure>
+  <figure style="margin-top:8px"><img src="proc/tiles-w6-atlas-x4.png" alt="World 6 copper tile atlas"><figcaption>World 6 verdigris copper with gold ridge (×4)</figcaption></figure>
   <h3>Processed strips (native, drawn ×2 in game) — scroll horizontally</h3>
   <div class="strip"><div class="row"><img src="proc/w1-far-strip.png" alt="far strip"><img src="proc/w1-far-strip.png" alt=""></div></div>
   <div class="strip" style="margin-top:8px"><div class="row"><img src="proc/w1-mid-strip.png" alt="mid strip"><img src="proc/w1-mid-strip.png" alt=""><img src="proc/w1-mid-strip.png" alt=""></div></div>
@@ -161,7 +183,7 @@
     <tr><td>Consistency</td><td>Perfect by construction.</td><td>Anna consistent across ref/run; one idle pose drifted; "extend right" seams failed, outpaint canvas works.</td><td>Drift confined to backgrounds, where acceptance rules catch it.</td></tr>
     <tr><td>Animation volume</td><td>Full frame budget.</td><td>Key poses only; in-betweens procedural.</td><td>Full procedural budget for moving things.</td></tr>
     <tr><td>Determinism</td><td>Full.</td><td>Processing yes; generation no (raw PNG + prompt committed).</td><td>Same, backgrounds only.</td></tr>
-    <tr><td>Cost / speed</td><td>Dev time only.</td><td>~$0.067 and ~12 s per image (measured, 12 calls).</td><td>~250–350 images ≈ $17–24.</td></tr>
+    <tr><td>Cost / speed</td><td>Dev time only.</td><td>~$0.067 and ~10–12 s per image (measured, 17 calls).</td><td>~250–350 images ≈ $17–24.</td></tr>
     <tr><td>Risk</td><td>Backgrounds less "stunning".</td><td>Seams, identity drift, lane contrast, tile style gap.</td><td>Style mismatch; mitigated by palette lock + lane gate.</td></tr>
   </table>
   <div class="rec"><b>Recommendation: hybrid.</b> AI-sourced long parallax backgrounds (using the outpaint canvas for continuations) + procedural tiles, UI, telegraphs and FX. For characters, the processed AI Anna is strong enough to become the design reference and possibly the key-pose source, with procedural in-betweens and wardrobe layers — your call after comparing section 4.</div>
@@ -171,7 +193,7 @@
   <h2>7. Provenance, licence, cost</h2>
   <table>
     <tr><th>Files</th><th>Model / service</th><th>Terms (commercial use)</th></tr>
-    <tr><td><code>gen/*.png</code> (12 images)</td><td><code>google/gemini-3.1-flash-image</code> via OpenRouter chat completions API, 2026-09-15</td><td>Gemini API Additional Terms: "Use of Generated Content — Google won't claim ownership over that content" (<a href="https://ai.google.dev/gemini-api/terms" style="color:var(--echo)">ai.google.dev/gemini-api/terms</a>); Generative AI Prohibited Use Policy; OpenRouter Terms (<a href="https://openrouter.ai/terms" style="color:var(--echo)">openrouter.ai/terms</a>). No non-commercial restriction. Outputs carry an invisible SynthID watermark. Similar output may be generated for others (no exclusivity).</td></tr>
+    <tr><td><code>gen/*.png</code> (17 images: 12 World 1 + Anna, 5 World 6 + menu; $1.151 total)</td><td><code>google/gemini-3.1-flash-image</code> via OpenRouter chat completions API, 2026-09-15</td><td>Gemini API Additional Terms: "Use of Generated Content — Google won't claim ownership over that content" (<a href="https://ai.google.dev/gemini-api/terms" style="color:var(--echo)">ai.google.dev/gemini-api/terms</a>); Generative AI Prohibited Use Policy; OpenRouter Terms (<a href="https://openrouter.ai/terms" style="color:var(--echo)">openrouter.ai/terms</a>). No non-commercial restriction. Outputs carry an invisible SynthID watermark. Similar output may be generated for others (no exclusivity).</td></tr>
   </table>
   <p>Rejected options: direct Gemini API (HTTP 429 quota exhausted on every image model); Pollinations (its only listed model is <code>sana</code>, whose weights licence was not verified as commercial, so not used); local FLUX.1-schnell (Apache-2.0, but gated behind a Hugging Face login and a 22 GB download).</p>
   <h3>Prompts (exact text + footer per file)</h3>
@@ -202,12 +224,11 @@
 </section>
 <script>
   fetch("proc/report.json").then((r) => r.json()).then((rep) => {
-    const c = rep.laneContrast; if (!c) return;
-    const fmt = (o) => o ? `ΔL ${o.meanAbsDeltaL} (art ${o.artL} vs background ${o.bgL})` : "n/a";
-    const pass = (o) => o && o.meanAbsDeltaL >= c.threshold;
-    document.getElementById("contrast-values").innerHTML =
-      `Anna ${fmt(c.anna)} <b class="${pass(c.anna) ? "ok" : "bad"}">${pass(c.anna) ? "pass" : "below gate"}</b> · lane top row ${fmt(c.tileTopRow)} <b class="${pass(c.tileTopRow) ? "ok" : "bad"}">${pass(c.tileTopRow) ? "pass" : "below gate"}</b>`;
-  }).catch(() => { document.getElementById("contrast-values").textContent = "report.json unavailable"; });
+    const cell = (v, g) => `<td class="${v >= g ? "ok" : "bad"}">${v}</td>`;
+    const rows = Object.entries(rep).filter(([k]) => k.startsWith("gate-")).flatMap(([k, v]) =>
+      ["desktop", "iphone"].map((d) => `<tr><td>${k.slice(5)}</td><td>${d}</td>${cell(v[d].annaSilhouette, 0.25)}${cell(v[d].annaMeanDeltaL, 0.25)}${cell(v[d].laneTopRow, 0.25)}</tr>`));
+    document.getElementById("gates").innerHTML = `<table><tr><th>Scene</th><th>View</th><th>Anna silhouette separation</th><th>Anna per-pixel mean ΔL</th><th>Lane top row ΔL</th></tr>${rows.join("")}</table>`;
+  }).catch(() => { document.getElementById("gates").textContent = "report.json unavailable"; });
 </script>
 </body>
 </html>

@@ -1,156 +1,236 @@
 {
  "w1-sky": {
-  "raw": "1376x768",
-  "native": "640x360",
   "sha": "2a8754752e3f"
  },
- "w1-far": {
+ "w1-far-before": {
+  "tag": "-before",
   "seg2": "w1-far-seg2.png",
   "registration": {
-   "cost": 36.945278298936834,
    "o": 234,
-   "dy": 0
+   "dy": 0,
+   "cost": 36.9
   },
-  "horizonEdgeRows": [
-   514,
-   514
-  ],
   "baseLine": [
    515,
    515
   ],
   "accepted": true,
-  "reasons": [],
-  "long": {
-   "width": 1018,
-   "cut": 88,
-   "wrap": {
-    "across": 6.3,
-    "adjacent": 6.6
-   },
-   "slices": [
-    "960x360",
-    "58x360"
-   ],
-   "sha": "7ddb0c7eec19"
-  }
+  "width": 1018,
+  "wrap": {
+   "across": 6.3,
+   "adjacent": 6.6
+  },
+  "sha": "7ddb0c7eec19"
  },
- "w1-mid": {
+ "w1-mid-before": {
+  "tag": "-before",
   "seg2": "w1-mid-seg2-outpaint.png",
   "registration": {
-   "cost": 33.95965638901672,
    "o": 635,
-   "dy": 0
+   "dy": 0,
+   "cost": 34
   },
-  "horizonEdgeRows": [
-   586,
-   562
-  ],
   "baseLine": [
    672,
    672
   ],
   "accepted": true,
-  "reasons": [],
-  "long": {
-   "width": 684,
-   "cut": 108,
-   "wrap": {
-    "across": 18,
-    "adjacent": 65.4
-   },
-   "slices": [
-    "684x360"
-   ],
-   "sha": "e682fc76866b"
-  }
+  "width": 684,
+  "wrap": {
+   "across": 18,
+   "adjacent": 65.4
+  },
+  "sha": "e682fc76866b"
  },
- "w1-near": {
+ "w1-near-before": {
+  "tag": "-before",
   "seg2": "w1-near-seg2.png",
   "registration": {
-   "cost": 144.97070217497046,
    "o": 702,
-   "dy": 0
+   "dy": 0,
+   "cost": 145
   },
-  "horizonEdgeRows": [
-   549,
-   549
-  ],
   "baseLine": [
    549,
    549
   ],
   "accepted": false,
-  "reasons": [
-   "overlap cost 145.0 > 120"
-  ],
-  "variants": [
-   {
-    "width": 232,
-    "cut": 45,
-    "wrap": {
-     "across": 25.7,
-     "adjacent": 49
-    },
-    "sha": "70b6bd3d3cab"
+  "variant": {
+   "width": 232,
+   "wrap": {
+    "across": 25.5,
+    "adjacent": 53.1
    },
-   {
-    "width": 232,
-    "cut": 45,
-    "wrap": {
-     "across": 25.5,
-     "adjacent": 53.1
-    },
-    "sha": "6a5bd2328e09"
-   }
-  ]
+   "sha": "6a5bd2328e09"
+  },
+  "width": 232,
+  "wrap": {
+   "across": 25.7,
+   "adjacent": 49
+  },
+  "sha": "70b6bd3d3cab"
+ },
+ "w1-mid": {
+  "tag": "",
+  "seg2": "w1-mid-seg2-outpaint.png",
+  "registration": {
+   "o": 635,
+   "dy": 0,
+   "cost": 34
+  },
+  "baseLine": [
+   672,
+   672
+  ],
+  "accepted": true,
+  "width": 684,
+  "wrap": {
+   "across": 27.4,
+   "adjacent": 72.1
+  },
+  "sha": "0dea7612cdac"
+ },
+ "w1-near": {
+  "tag": "",
+  "seg2": "w1-near-seg2.png",
+  "registration": {
+   "o": 702,
+   "dy": 0,
+   "cost": 145
+  },
+  "baseLine": [
+   549,
+   549
+  ],
+  "accepted": false,
+  "variant": {
+   "width": 232,
+   "wrap": {
+    "across": 25.5,
+    "adjacent": 52.6
+   },
+   "sha": "b76b3a9951f3"
+  },
+  "width": 232,
+  "wrap": {
+   "across": 25.7,
+   "adjacent": 48.5
+  },
+  "sha": "297cb2966f8c"
+ },
+ "w6-sky": {
+  "sha": "c4a1d9e5be5c"
+ },
+ "fixes": [
+  {
+   "file": "w6-far-seg1.png",
+   "reason": "The model drew a moon into this cut-out far layer (the sky layer already has the moon); cut the disc so only one moon shows. Found as the largest bright low-chroma blob in the upper half: bbox 241-502 x 54-320, radius 133 + 6 px margin for the anti-aliased edge.",
+   "cutCircles": 1
+  },
+  {
+   "file": "w6-mid-seg1.png",
+   "reason": "The model drew a moon into this cut-out mid layer (the sky layer already has the moon); cut the disc so only one moon shows. Found as the largest bright low-chroma blob in the upper half: bbox 119-383 x 37-305, radius 134 + 6 px margin for the anti-aliased edge.",
+   "cutCircles": 1
+  }
+ ],
+ "w6-far": {
+  "tag": "",
+  "seg2": null,
+  "width": 700,
+  "wrap": {
+   "across": 4.1,
+   "adjacent": 2.7
+  },
+  "sha": "7c3db8f70d4e"
+ },
+ "w6-mid": {
+  "tag": "",
+  "seg2": null,
+  "width": 606,
+  "wrap": {
+   "across": 80.1,
+   "adjacent": 17.4
+  },
+  "sha": "855f694e5c4f"
+ },
+ "w6-near": {
+  "tag": "",
+  "seg2": null,
+  "width": 99,
+  "wrap": {
+   "across": 1.3,
+   "adjacent": 18.3
+  },
+  "sha": "23d1577e6ae0",
+  "rejected": "checklist: drew a castle and an opaque bottom fill instead of a simple low railing"
  },
  "anna-ref": {
   "figures": 3,
-  "cells": [
-   "18x46",
-   "15x46",
-   "18x46"
-  ],
-  "sha": "b618216742aa"
+  "sha": "caca7845409e"
  },
  "anna-idle": {
   "figures": 2,
-  "cells": [
-   "17x46",
-   "19x46"
-  ],
-  "sha": "665ec547d35c"
+  "sha": "e63937568dd1"
  },
  "anna-run": {
   "figures": 4,
-  "cells": [
-   "24x46",
-   "19x46",
-   "24x46",
-   "19x46"
-  ],
-  "sha": "b6c30b19299c"
+  "sha": "a4233b3ffbd7"
  },
- "composite": {
-  "sha": "e78ec28c1d0c"
- },
- "laneContrast": {
-  "threshold": 0.25,
-  "anna": {
-   "pixels": 3076,
-   "meanAbsDeltaL": 0.236,
-   "artL": 0.49,
-   "bgL": 0.414
+ "gate-level1-before": {
+  "desktop": {
+   "annaMeanDeltaL": 0.22,
+   "annaSilhouette": 0.148,
+   "laneTopRow": 0.487,
+   "gate": 0.25
   },
-  "tileTopRow": {
-   "pixels": 9216,
-   "meanAbsDeltaL": 0.451,
-   "artL": 0.785,
-   "bgL": 0.334
+  "iphone": {
+   "annaMeanDeltaL": 0.225,
+   "annaSilhouette": 0.148,
+   "laneTopRow": 0.493,
+   "gate": 0.25
   }
  },
- "compositeIphone": {
-  "sha": "bbe58c0afc8a"
+ "gate-level1-after": {
+  "desktop": {
+   "annaMeanDeltaL": 0.235,
+   "annaSilhouette": 0.386,
+   "laneTopRow": 0.419,
+   "gate": 0.25
+  },
+  "iphone": {
+   "annaMeanDeltaL": 0.244,
+   "annaSilhouette": 0.387,
+   "laneTopRow": 0.426,
+   "gate": 0.25
+  }
+ },
+ "compositeLevel1": {
+  "sha": "c46d59b90e7f",
+  "iphone": "be6c2784f8f3"
+ },
+ "gate-boss": {
+  "desktop": {
+   "annaMeanDeltaL": 0.228,
+   "annaSilhouette": 0.411,
+   "laneTopRow": 0.465,
+   "gate": 0.25
+  },
+  "iphone": {
+   "annaMeanDeltaL": 0.233,
+   "annaSilhouette": 0.412,
+   "laneTopRow": 0.473,
+   "gate": 0.25
+  }
+ },
+ "compositeBoss": {
+  "sha": "97ed61c86aee",
+  "iphone": "9b6df6c9485f"
+ },
+ "menu-bg": {
+  "sha": "7e880f3489a2"
+ },
+ "compositeMenu": {
+  "sha": "acf1071b221a",
+  "iphone": "7de3707a7b3f"
  }
 }

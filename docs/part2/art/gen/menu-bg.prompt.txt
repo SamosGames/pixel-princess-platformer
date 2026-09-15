@@ -1,0 +1,13 @@
+Cozy fairy-tale 16-bit pixel art look for a 2D side-scrolling platformer. Clean readable shapes, soft hue-shifted shading (shadows lean violet-blue, highlights lean warm), light from the upper left. Orthographic side view, no perspective tilt, no camera blur, no depth of field. No text, no letters, no numbers, no logos, no user interface, no watermark, no signature.
+
+World: "Threshold of Echoes", the moonlit mirrored antechamber of a fairy-tale palace at night. Palette, use only these colour families: deep indigo #140f2a, violet #3a2f66, periwinkle #6564a0, lilac marble #bdb2d8, moon white #f4eefb, warm gold #e0a93f, echo cyan #8ff0e6, soft rose #ff8fa3. The moon shines through tall arched windows from the upper left. Keep the horizon (the floor line of the distant architecture) at 62% of the image height, measured from the top.
+
+A menu screen background: a moonlit palace balcony at night seen from inside. A lilac marble balustrade runs across the bottom 22% of the image; two small hanging lanterns glow warm at the top left and top right corners; a large soft moon in the upper right; far away, castle rooftops and towers with a few warm windows under a starry indigo sky. Keep the centre and the left two thirds calm and uncluttered (only sky and distant rooftops) so a title and menu panels can sit on top. No characters. Full bleed.
+
+---
+model: google/gemini-3.1-flash-image via OpenRouter chat completions (modalities image+text, aspect_ratio 16:9); cost_usd: 0.0673755
+attachments: none
+date: 2026-09-15T15:11:25.624Z
+returned: image/png 1376x768
+attempt: 1
+licence/terms: Gemini API Additional Terms of Service https://ai.google.dev/gemini-api/terms ("Use of Generated Content: ... Google won't claim ownership over that content"); Google Generative AI Prohibited Use Policy https://policies.google.com/terms/generative-ai/use-policy; OpenRouter Terms of Service https://openrouter.ai/terms. Output carries an invisible SynthID watermark. Commercial use: permitted by these terms (no non-commercial restriction).

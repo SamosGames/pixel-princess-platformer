@@ -1192,6 +1192,83 @@ function mockTricks() {
   save("mockup-tricks.png", img);
 }
 
+// ================================================================================================
+// UI-only layers (transparent) for the hybrid composites: AI backgrounds + procedural UI/sprites.
+// Written to the OS temp dir; docs/part2/art processing composites them over processed layers.
+// ================================================================================================
+function bossUiLayer(FLOOR = 288) {
+  const img = canvas();
+  const ECHO = hex("#7ff3ff"); const DANGER = hex("#ff5f7e");
+  const SLOT_W = 64; const SLOT0 = 96;
+  for (let s = 0; s < 7; s++) {
+    if (s >= 2 && s <= 4) continue; // contiguous 3-slot safe lane
+    const cx = SLOT0 + s * SLOT_W + SLOT_W / 2;
+    glow(img, cx, FLOOR, 26, DANGER, 0.45);
+    ellipse(img, cx, FLOOR + 1, 16, 3, DANGER, 0.55);
+    ring(img, cx, FLOOR - 16, 7, 1.2, DANGER, 0.9);
+    rect(img, cx - 1, FLOOR - 20, 2, 5, DANGER); rect(img, cx - 1, FLOOR - 13, 2, 1, DANGER);
+  }
+  for (const [s, fy] of [[0, 150], [6, 110], [1, 60]]) {
+    const cx = SLOT0 + s * SLOT_W + SLOT_W / 2;
+    for (let t = 0; t < 30; t++) put(img, cx + (t % 2), fy - t * 2, hex("#fff3c4"), (1 - t / 30) * 0.6);
+    glow(img, cx, fy, 16, hex("#ffe08a"), 0.5);
+    trap(img, fy - 6, fy + 1, cx, 0.5, 5, hex("#fff3c4")); trap(img, fy + 1, fy + 7, cx, 5, 0.5, hex("#ffd35a"));
+  }
+  const dama = paintDama(); const dx = 300, dy = 76;
+  glow(img, dx + 28, dy + 38, 80, hex("#8a6fd1"), 0.3);
+  for (const [rr, a] of [[46, 0.8], [58, 0.5], [70, 0.25]]) ring(img, dx + 28, dy + 38, rr, 2, ECHO, a, rr > 50);
+  blit(img, dama, dx - 22, dy + 4, { tint: ECHO, alpha: 0.14 });
+  blit(img, dama, dx + 22, dy + 4, { tint: hex("#c5b3ff"), alpha: 0.14 });
+  blit(img, dama, dx, dy);
+  hudPanel(img, 40, 8, 16, 16, 2, 3, "3:18", hex("#ffd35a"));
+  const name = "LA DAMA DELL'ECO"; const bw = 190; const bx = W / 2 - bw / 2;
+  panel(img, bx, 10, bw, 32, { fill: hex("#2a1d4c"), border: OUT, hi: hex("#5b47a0"), alpha: 0.94 });
+  text(img, name, W / 2 - textW(name) / 2, 15, hex("#efe6ff"), { shadow: OUT });
+  for (let i = 0; i < 4; i++) panel(img, W / 2 - 76 + i * 38 + 4, 27, 30, 9, { fill: i < 3 ? ECHO : hex("#1a1233"), border: OUT, hi: i < 3 ? hex("#d6fdff") : null });
+  panel(img, W - 34, 8, 26, 26, { fill: hex("#2a2046"), border: OUT, hi: hex("#4b3f78"), alpha: 0.92 });
+  rect(img, W - 26, 17, 4, 8, hex("#efe6ff")); trap(img, 13, 29, W - 20, 1, 6, hex("#efe6ff"));
+  writeFileSync(join(tmpdir(), ".boss-ui.png"), encodePNG(img));
+  console.log("wrote .boss-ui.png (temp)");
+}
+
+function menuUiLayer() {
+  const img = canvas();
+  const GOLD = { hi: hex("#ffe08a"), base: hex("#e0a93f"), lo: hex("#a36d25") };
+  const l1 = "IL VALZER", l2 = "INCOMPIUTO";
+  text(img, l1, W / 2 - textW(l1, 4) / 2, 22, GOLD.base, { scale: 4, shadow: hex("#2a1a44"), outlineCol: OUT, grad: [GOLD.hi, GOLD.lo] });
+  text(img, l2, W / 2 - textW(l2, 3) / 2, 58, hex("#efe6ff"), { scale: 3, shadow: hex("#2a1a44"), outlineCol: OUT, grad: [hex("#ffffff"), hex("#b8a6ee")] });
+  const sub = "PRINCIPESSA · PARTE 2";
+  panel(img, W / 2 - textW(sub) / 2 - 10, 86, textW(sub) + 20, 15, { fill: hex("#3b2a66"), border: OUT, hi: hex("#6a58a8") });
+  text(img, sub, W / 2 - textW(sub) / 2, 90, hex("#8ff0e6"), { shadow: OUT });
+  panel(img, 18, 112, 244, 162, { fill: hex("#1f1740"), border: OUT, hi: hex("#4b3f78"), alpha: 0.9 });
+  text(img, "IL TUO VIAGGIO", 30, 120, GOLD.hi, { shadow: OUT });
+  WORLDS.forEach((wd, i) => {
+    const cx = 28 + (i % 3) * 78, cy = 136 + Math.floor(i / 3) * 68, sel = i === 0, locked = wd.stars < 0;
+    panel(img, cx - 2, cy - 2, 72, 62, { fill: sel ? GOLD.base : hex("#2d2356"), border: OUT, hi: sel ? GOLD.hi : hex("#4b3f78") });
+    worldThumb(img, cx + 2, cy + 2, 64, 40, wd);
+    if (locked) { dith(img, cx + 2, cy + 2, 64, 40, hex("#0e0a1e"), 0.75); rect(img, cx + 29, cy + 18, 10, 9, hex("#9d8fc0")); ring(img, cx + 34, cy + 17, 4, 1.4, hex("#9d8fc0")); }
+    panel(img, cx, cy, 13, 12, { fill: sel ? hex("#fff3d6") : hex("#3b2a66"), border: OUT });
+    text(img, String(wd.n), cx + 4, cy + 3, sel ? OUT : hex("#efe6ff"));
+    for (let s = 0; s < 3; s++) starIcon(img, cx + 6 + s * 10, cy + 46, wd.stars > s ? hex("#ffd35a") : hex(sel ? "#a36d25" : "#4a3a5e"));
+  });
+  const button = (label, y, primary) => {
+    const bw = primary ? 150 : 120, bh = primary ? 30 : 22, bx = 364 - bw / 2;
+    rect(img, bx + 2, y + 3, bw, bh, OUT, 0.5);
+    panel(img, bx, y, bw, bh, { fill: primary ? GOLD.base : hex("#efe6ff"), border: OUT, hi: primary ? GOLD.hi : hex("#ffffff") });
+    rect(img, bx + 2, y + bh - 4, bw - 4, 2, primary ? GOLD.lo : hex("#b8a6ee"));
+    const sc = primary ? 2 : 1;
+    text(img, label, bx + bw / 2 - textW(label, sc) / 2, y + (bh - 7 * sc) / 2 - 1, primary ? hex("#2a1a44") : hex("#3b2a66"));
+  };
+  button("GIOCA", 150, true); button("CLASSIFICA", 196, false); button("GUARDAROBA", 226, false); button("OPZIONI", 256, false);
+  glow(img, 520, 230, 70, hex("#ffd9a0"), 0.35);
+  ellipse(img, 520, 280, 40, 7, hex("#2a1d4c")); ellipse(img, 520, 277, 38, 6, hex("#9d8fc0")); ellipse(img, 520, 276, 34, 4, hex("#c3b6e3"));
+  panel(img, 8, 8, 104, 22, { fill: hex("#2a2046"), border: OUT, hi: hex("#4b3f78"), alpha: 0.92 }); text(img, "SFIDA UN'AMICA", 16, 16, hex("#efe6ff"));
+  panel(img, W - 34, 8, 26, 26, { fill: hex("#2a2046"), border: OUT, hi: hex("#4b3f78"), alpha: 0.92 });
+  rect(img, W - 26, 17, 4, 8, hex("#efe6ff")); trap(img, 13, 29, W - 20, 1, 6, hex("#efe6ff"));
+  writeFileSync(join(tmpdir(), ".menu-ui.png"), encodePNG(img));
+  console.log("wrote .menu-ui.png (temp)");
+}
+
 mockIphone(mockLevel1());
 mockBoss();
 mockMenu();
@@ -1199,3 +1276,5 @@ mockSheet();
 mockWardrobe();
 mockWardrobe("ru", 4); // RU variant, a purchasable look selected (then run ru-overlay.py)
 mockTricks();
+bossUiLayer();
+menuUiLayer();

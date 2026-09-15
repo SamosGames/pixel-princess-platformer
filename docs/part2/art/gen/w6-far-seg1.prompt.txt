@@ -1,0 +1,15 @@
+Cozy fairy-tale 16-bit pixel art look for a 2D side-scrolling platformer. Clean readable shapes, soft hue-shifted shading (shadows lean violet-blue, highlights lean warm), light from the upper left. Orthographic side view, no perspective tilt, no camera blur, no depth of field. No text, no letters, no numbers, no logos, no user interface, no watermark, no signature.
+
+World: "Roof of the First Dance", the moonlit rooftop of a fairy-tale palace above its ballroom at night, with a small observatory dome. Palette, use only these colour families: deep night indigo #140f2b, dusk violet #3a2a5e, dark verdigris #28575a, verdigris copper #5fae9c, pale patina #8fd6c2, gold #e8b84a, warm window light #ffc76e, echo cyan #7ff3ff. A huge full moon in the upper left gives the light. Keep the horizon at 62% of the image height, measured from the top.
+
+Draw everything on a completely flat, solid #FF00FF magenta background: one uniform colour, no gradient, no texture, no floor, no cast shadow on the background, no glow bleeding into it.
+
+Far background layer only: distant fairy-tale castle spires and slim towers as hazy violet silhouettes with a few tiny warm windows, very low contrast. Keep all artwork inside a horizontal band from 30% to 70% of the image height; the band's bottom edge is a straight horizontal line at 70%. The artwork runs edge to edge horizontally.
+
+---
+model: google/gemini-3.1-flash-image via OpenRouter chat completions (modalities image+text, aspect_ratio 21:9); cost_usd: 0.067381
+attachments: none
+date: 2026-09-15T15:10:57.190Z
+returned: image/png 1584x672
+attempt: 1
+licence/terms: Gemini API Additional Terms of Service https://ai.google.dev/gemini-api/terms ("Use of Generated Content: ... Google won't claim ownership over that content"); Google Generative AI Prohibited Use Policy https://policies.google.com/terms/generative-ai/use-policy; OpenRouter Terms of Service https://openrouter.ai/terms. Output carries an invisible SynthID watermark. Commercial use: permitted by these terms (no non-commercial restriction).

@@ -351,3 +351,49 @@ touch the image edge · [ ] no extra limbs or merged figures.
 3. Look at raw vs processed side by side at 1:1 and ×4. If processing exposes a problem the
    checklist missed, add that line to the checklist, then regenerate.
 4. Add the images and prompts to `review.html` (AI column, backgrounds, Anna, prompts).
+
+---
+
+## Follow-up run: World 6 boss arena + menu background (2026-09-15)
+
+Same route and rules: `google/gemini-3.1-flash-image` via OpenRouter, one stateless request per
+image, and the exact expanded prompt in each `<name>.prompt.txt`.
+
+### W6 — world block: Tetto del Primo Ballo
+
+```text
+World: "Roof of the First Dance", the moonlit rooftop of a fairy-tale palace above its ballroom at
+night, with a small observatory dome. Palette, use only these colour families: deep night indigo
+#140f2b, dusk violet #3a2a5e, dark verdigris #28575a, verdigris copper #5fae9c, pale patina
+#8fd6c2, gold #e8b84a, warm window light #ffc76e, echo cyan #7ff3ff. A huge full moon in the upper
+left gives the light. Keep the horizon at 62% of the image height, measured from the top.
+```
+
+| File | Asked | Layer brief | Cost | Acceptance |
+| --- | --- | --- | ---: | --- |
+| `w6-sky.png` | 16:9, opaque | stars, huge moon upper left, two faint cyan ribbons | $0.0673 | accepted |
+| `w6-far-seg1.png` | 21:9, `#FF00FF` | hazy castle spires, band 30–70% | $0.0674 | accepted with `w6-far-seg1.fix.json`: it drew an extra moon, cut by the committed fix |
+| `w6-mid-seg1.png` | 21:9, `#FF00FF` | verdigris roofs, dormers, rose window, band 35–78% | $0.0674 | accepted with `w6-mid-seg1.fix.json` (extra moon cut); needs an outpaint continuation for a seamless loop |
+| `w6-near-seg1.png` | 21:9, `#FF00FF` | low dark railing, short sparse verticals, band 66–88% | $0.0674 | **rejected**: drew a castle and an opaque bottom fill |
+| `menu-bg.png` | 16:9, opaque | balcony, two lanterns, moon, distant castle, calm left two thirds | $0.0674 | accepted |
+
+New checklist lines learned from this run:
+
+- [ ] Cut-out layers contain **no sky objects** (moon, stars, clouds). Add "no moon, no sky" to
+      every far/mid/near prompt.
+- [ ] Near layers contain **only** the requested framing elements, with nothing opaque below the
+      base line.
+
+Running total: 17 generations, $1.151.
+
+### Source fixes: `<name>.fix.json`
+
+When a generation is good except for one stray element, the fix is committed next to the source
+instead of hand-editing anything downstream. The processing reads `<name>.fix.json`
+(`cutCircles: [{cx, cy, r}]` in raw-image pixels, plus a `reason`) right after key-out, and lists
+every applied fix in `proc/report.json`.
+
+Used for `w6-far-seg1` and `w6-mid-seg1`: both drew a moon into a cut-out layer. Automatic removal
+was tried first (alpha components standing on the base line, then colour-aware and running-mean
+region growth). Each variant either kept the moon or cut W1 mirror glass, light shafts and roof
+tiles, so it was dropped in favour of an explicit, reviewable fix.

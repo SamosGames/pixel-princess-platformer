@@ -1,0 +1,4 @@
+{
+  "reason": "The model drew a moon into this cut-out mid layer (the sky layer already has the moon); cut the disc so only one moon shows. Found as the largest bright low-chroma blob in the upper half: bbox 119-383 x 37-305, radius 134 + 6 px margin for the anti-aliased edge.",
+  "cutCircles": [{ "cx": 251, "cy": 171, "r": 140 }]
+}

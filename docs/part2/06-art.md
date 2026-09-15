@@ -9,7 +9,7 @@ greedy-meshed colliders.
 
 Direction changes folded in:
 
-- **Asset source is AI image generation** (decided by the human; the ChatGPT browser route was ruled out), made usable by a
+- **Asset source is AI image generation** (decided by the human; no browser route), made usable by a
   deterministic `tools/gen` processing step (§4).
 - **Backgrounds are the priority**: long, multi-segment parallax layers (§3.4, §4.4).
 - **Scope addition after market research**: wardrobe meta, opt-in rewarded boosts, trick

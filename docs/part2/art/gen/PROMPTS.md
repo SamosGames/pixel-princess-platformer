@@ -1,7 +1,7 @@
 # AI image prompt list — World 1 backgrounds + Anna (generation order)
 
 **Tested on 2026-09-15 with `google/gemini-3.1-flash-image` via the OpenRouter API** (no
-browser login; the ChatGPT browser route was not available). The generated files and their exact
+browser login). The generated files and their exact
 prompts live next to this file. Every `<name>.prompt.txt` ends with the model, date, returned
 size, cost and terms URL. Twelve generations cost $0.814 in total: B00–B02, B04–B05, B09–B10,
 A01–A03, plus the outpaint continuation below. Design: `docs/part2/06-art.md` §4.

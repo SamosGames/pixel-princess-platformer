@@ -21,12 +21,12 @@ cells wide or less. Boss levels use the shared arena layout from `04-boss.md`.
 
 | Level | World and title key | Narrative goal | Length | Critical ravines (`x,w`) | Required/new-mechanic beats | Checkpoints (`F`) | Heart (`H`) | Difficulty |
 | --- | --- | --- | ---: | --- | --- | --- | --- | ---: |
-| 1 | Soglia degli Echi — `p2.level.1.name` | Cross the mirrored antechamber and recover the first missing measure. | 116 cells | `(18,2), (42,2), (72,2)` | Introduce optional `L` magnet after three visible `o` collectibles; introduce one deterministic `V` vent on clear ground; reuse `M` → `#`. | `x=46`, `x=88` | none | 2/5 |
+| 1 | Soglia degli Echi — `p2.level.1.name` | Cross the mirrored antechamber and recover the first missing measure. | 116 cells | `(18,2), (42,2), (72,2)` | Teach one deterministic `V` vent after the first thorn, then introduce optional `L` magnet after the danger beside three visible `o` collectibles; reuse `M` → `#`. | `x=46`, `x=88` | none | 2/5 |
 | 2 | Chiome delle Campanelle — `p2.level.2.name` | Follow Luce's answering bells into the suspended canopy. | 122 cells | `(20,2), (50,2), (80,2), (104,2)` | Introduce `R` beside an optional `~` phase bridge; reuse a mover, `w`/`B`, and a spring-to-`#` bonus route. | `x=48`, `x=92` | `x=72,y=10`, on a safe flat after the first bridge lesson | 3/5 |
-| 3 | Archivio Sospeso — `p2.level.3.name` | Retrieve Anna's blank page and defeat the archive's 2-HP mid-boss guardian. | 126 cells | `(18,2), (38,2), (62,2), (88,2)` | Introduce `C` after a long flat teaching strip; combine `!`, `g`, `S`, and a feather bonus route; finish in the shared mid-boss arena. | `x=52` and shared boss `x=100` | none | 3.5/5 |
+| 3 | Archivio Sospeso — `p2.level.3.name` | Retrieve Anna's blank page and defeat La Guardiana dell'Eco, the archive's 2-HP mid-boss. | 126 cells | `(18,2), (38,2), (62,2), (88,2)` | Introduce `C` after a long flat teaching strip; combine `!`, `g`, `S`, and a feather bonus route; finish in the shared mid-boss arena. | `x=52` and shared boss `x=100` | none | 3.5/5 |
 | 4 | Fucina dell'Alba — `p2.level.4.name` | Carry the forged clasp through the dawn forge. | 132 cells | `(20,2), (58,2), (88,2), (112,2)` | Reuse `R`/`~` as two optional short bridges, plus `r`, `s`, `P`, and one mover; checkpoint between bridge sets. | `x=52`, `x=96` | `x=76,y=10`, after the first forge timing beat | 4/5 |
 | 5 | Mare delle Stelle — `p2.level.5.name` | Reconnect Luce's final bell line across the roof's star sea. | 128 cells | `(18,2), (50,2), (82,2), (108,2)` | Reuse `B`/`w` assisted crossings, two offset `V` vents, `C` pressure, an `L` bonus, and an off-phase mover. | `x=52`, `x=96` | none | 4.5/5 |
-| 6 | Tetto del Primo Ballo — `p2.level.6.name` | Defeat La Dama dell'Eco, collect the final note/key, and reopen the ballroom dance. | 126 cells | `(18,2), (54,2), (82,2), (96,2)` | Reuse `C`, `V`, `R`/`~` and `S` only before the arena; finish in the shared 4-HP final-boss arena. | `x=56` and shared boss `x=100` | `x=108,y=10`, after the boss checkpoint and before the staircase | 5/5 |
+| 6 | Tetto del Primo Ballo — `p2.level.6.name` | Defeat La Dama dell'Eco, collect the final note/key, and reopen the ballroom dance. | 126 cells | `(18,2), (54,2), (82,2), (96,2)` | Reuse `C`, `V`, `R`/`~` and `S` only before the arena; finish in the shared 4-HP final-boss arena. | `x=56` and shared boss `x=100` | `x=101,y=10`, on the clear flat before the staircase | 5/5 |
 
 ### Curve and retry rules
 
@@ -45,6 +45,8 @@ cells wide or less. Boss levels use the shared arena layout from `04-boss.md`.
 - Critical-path gaps remain `w <= 2`; there is no double jump. Any `M` used by a route launches
   onto a semisolid `#`, never onto a solid `=` slab. `+`, `L`, `R`/`~` bonus routes, and all
   high shelves remain optional unless a safe fallback is explicitly shown.
+- `R`/`~` remains strictly optional: missing the phase bridge never blocks completion, and
+  three-star counting includes ordinary `o` collectibles only, never the bridge route itself.
 - Place no heart in a death loop. Part 2 grants three hearts total, on Levels 2, 4 and 6,
   one per level at most. `heartsTaken` must remember each pickup through a checkpoint retry,
   preserving the existing no-infinite-lives rule.
@@ -101,14 +103,15 @@ the coordinates in the table are authoritative when the data files are authored.
 
 ### Level 1 — Soglia degli Echi: magnet and vent introduction
 
-The magnet follows a visible low `o` line and is optional. The vent sits on clear flat ground
-with enough stopping room; it is not under the required spring landing. The `M` launches onto
-the `#` strip directly above it, never onto solid ground.
+Anna meets the floor-level `V` first, after the first thorn, with enough stopping room. After
+the danger, a visible low `o` line leads to the optional `L` magnet. The vent is not under the
+required spring landing; the `M` launches onto the `#` strip directly above it, never onto solid
+ground.
 
 ```text
 y=7                         ###  ###
-y=10             o  o  o       L       V
-y=11  @  h  ^  c       F       M          >
+y=10                         o  o  o    L
+y=11  @  h  ^  c     V       F       M          >
 y=12  ==========  ==  ========================
 y=13  ==========  ==  ========================
 ```
@@ -130,7 +133,7 @@ y=13  ==========  ==  ===================  ==  =====
 `~` is shown at its active position; it is absent until the rune is touched. Its cells are
 one-way semisolids, so the player can jump through from below and land from above.
 
-### Level 3 — Archivio Sospeso: charger teaching strip and mid-boss
+### Level 3 — Archivio Sospeso: charger teaching strip and La Guardiana dell'Eco
 
 The first `C` follows a long flat, obstacle-free teaching strip. The mid-boss uses the shared
 arena shape below; `G` is the single boss anchor and is configured as `boss.mid` with 2 HP.
@@ -181,8 +184,7 @@ never a required glide landing; `L` is an optional collection-completion aid.
 ```text
 y=8                         B B B B B
 y=9                              L     o  o  o
-y=10                V                    V
-y=11  @  ^       F       C       w       F       >
+y=11  @  ^       F       C     V   w   V     F       >
 y=12  ==========  ==  =================  ==  =====
 y=13  ==========  ==  =================  ==  =====
 ```
@@ -201,6 +203,9 @@ y=11  @  ^       C       F       V       F       >
 y=12  ==========  ==  ================================
 y=13  ==========  ==  ================================
 ```
+
+The `H` is at `x=101,y=10`, after the x100 checkpoint and before the x104 staircase, so it
+is not embedded in the terrace cells at x108–111.
 
 Shared Level 6 arena ending:
 
@@ -221,7 +226,7 @@ in a config-side boss variant, not in level literals:
 
 | Encounter | Level | Config identity | HP | Attack order | Purpose |
 | --- | ---: | --- | ---: | --- | --- |
-| Mid-boss | 3 | `boss.mid` | 2 | shockwave, debris | Teach the deterministic boss language and keep the retry short. |
+| Mid-boss | 3 | La Guardiana dell'Eco — `boss.mid` | 2 | shockwave, debris | Teach the deterministic boss language and keep the retry short. |
 | Final boss | 6 | `boss.final` / La Dama dell'Eco | 4 | debris, shockwave, debris, shockwave | Recombine both reads as the final test without adding a new combat system. |
 
 Required behavior for both:
@@ -268,9 +273,13 @@ Part 2 is a fork/reuse of the engine, not an extension of the Part 1 campaign:
    `p2_sleeves`, `p2_hairpin`, and `p2_ballgown`; their labels use `p2.reward.*` keys in IT/EN/RU.
    This keeps `unlockedSkinKeys()` and `skinUnlockedBy()` data-driven while making the fresh
    sequel reward loop legible.
-6. Add `p2.level.1.*` through `p2.level.6.*`, `p2.objective.*`, `p2.boss.*`, and any Luce,
-   Custode, Dama, checkpoint, reward, cutscene and finale keys to all three dictionaries. No
-   user-facing literal belongs in level files, `build.js`, `config.js`, or a scene.
+   Market check: reconcile this six-layer baseline with `00-market.md` §3 Must "Wardrobe meta"
+   (several looks per slot) before expanding the wardrobe scope; the human decides the final
+   number of looks and slots.
+6. Add `p2.level.1.*` through `p2.level.6.*`, `p2.objective.*`, `p2.boss.mid.*`,
+   `p2.boss.final.*`, `p2.character.guardianaEco.*`, and any Luce, Custode, Dama, checkpoint, reward, cutscene
+   and finale keys to all three dictionaries. No user-facing literal belongs in level files,
+   `build.js`, `config.js`, or a scene.
 7. Add generated backgrounds, theme props, collectibles, new-token sprites and boss art under
    stable Part 2 `config.js`/`ASSETS` keys. `npm run gen` remains the asset source; the Yandex
    archive is static and the no-SDK fallback remains playable.
@@ -282,14 +291,9 @@ new ad gate.
 
 ## Open questions
 
-- What is the final visual identity of the Level 3 local guardian? The `boss.mid` contract and
-  2 HP are fixed; its generated art and feminine Italian-facing name can be chosen without
-  changing the arena or collision rules.
 - Should the six fresh wardrobe layers use entirely new generated silhouettes or recolour the
   existing layer shapes? Either choice must keep six `afterLevel: 1..6` rewards and must not
   imply Part 1 save inheritance.
-- Should the optional `R`/`~` route count toward three-star completion? The baseline keeps it
-  optional and counts only ordinary `o` collectibles, pending the level review.
 - Do the longer 126–132-cell maps and new bounded token objects hold the mobile/Yandex frame
   budget? Verify with the mobile suite and a real-device pass after implementation; shorten an
   optional route before weakening culling, greedy collision meshing, or deterministic hazards.

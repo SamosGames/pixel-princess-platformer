@@ -13,152 +13,196 @@
   h1 { margin: 0 0 6px; font-size: 28px; }
   h2 { margin: 0 0 4px; font-size: 21px; color: var(--gold); }
   h3 { margin: 18px 0 8px; font-size: 16px; }
-  p { margin: 6px 0; max-width: 90ch; }
+  p { margin: 6px 0; max-width: 95ch; }
+  code { font-size: 13px; }
   .status { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #3b2a66; color: var(--echo); font-weight: 600; }
   nav a { color: var(--muted); margin-right: 14px; }
   .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
   .cols.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
   figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
   figcaption b { color: var(--text); }
   img { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 4px; }
-  .blocked { aspect-ratio: 16 / 9; display: grid; place-items: center; text-align: center; padding: 16px; border: 2px dashed var(--danger); border-radius: 4px; color: var(--danger); background: repeating-linear-gradient(45deg, #1b1433 0 12px, #20183d 12px 24px); }
-  .blocked small { display: block; color: var(--muted); margin-top: 6px; }
-  .phone { aspect-ratio: 932 / 430; }
-  .strip { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
-  .strip img { width: auto; max-width: none; height: 240px; }
-  .strip .row { display: flex; gap: 0; }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th, td { border: 1px solid var(--line); padding: 8px; vertical-align: top; text-align: left; }
-  th { background: #2d2356; }
-  td:first-child { font-weight: 600; white-space: nowrap; }
-  .rec { background: #2d2356; border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 6px; margin-top: 12px; }
-  pre { white-space: pre-wrap; background: #0e0a1e; border: 1px solid var(--line); border-radius: 6px; padding: 12px; font-size: 13px; }
-  .decide label { display: block; margin: 6px 0; }
   img.zoom { aspect-ratio: 16 / 9; object-fit: contain; background: #0e0a1e; }
+  img.soft { image-rendering: auto; }
+  .blocked { aspect-ratio: 16 / 9; display: grid; place-items: center; text-align: center; padding: 16px; border: 2px dashed var(--muted); border-radius: 4px; color: var(--muted); background: repeating-linear-gradient(45deg, #1b1433 0 12px, #20183d 12px 24px); }
+  .strip { overflow-x: auto; background: #0e0a1e; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  .strip img { width: auto; max-width: none; height: 240px; }
+  .strip .row { display: flex; }
+  .parallax { position: relative; height: 360px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .parallax div { position: absolute; inset: 0; background-repeat: repeat-x; background-size: auto 100%; image-rendering: pixelated; animation: pan linear infinite; }
+  .parallax .sky { background: url(proc/w1-sky.png) center / cover no-repeat; animation: none; }
+  .parallax .far { background-image: url(proc/w1-far-strip.png); --w: 1018px; animation-duration: 85s; }
+  .parallax .mid { background-image: url(proc/w1-mid-strip.png); --w: 684px; animation-duration: 23s; }
+  .parallax .near { background-image: url(proc/w1-near-strip.png); --w: 232px; animation-duration: 4.8s; }
+  @keyframes pan { from { background-position-x: 0; } to { background-position-x: calc(-1 * var(--w)); } }
+  @media (prefers-reduced-motion: reduce) { .parallax div { animation: none; } }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 7px 8px; vertical-align: top; text-align: left; }
+  th { background: #2d2356; }
+  td:first-child { font-weight: 600; }
+  .rec { background: #2d2356; border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 6px; margin-top: 12px; }
+  .ok { color: var(--echo); } .bad { color: var(--danger); }
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; margin: 6px 0; }
+  summary { cursor: pointer; }
+  object { width: 100%; height: 260px; background: #0e0a1e; border-radius: 4px; }
+  .decide label { display: block; margin: 6px 0; }
+  pre { white-space: pre-wrap; background: #0e0a1e; border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-size: 13px; }
 </style>
 </head>
 <body>
 <header>
   <h1>Pixel Princess Part 2 — art direction review</h1>
-  <p><span class="status">Pending human approval</span> Nothing is final until you approve. Full rationale: <code>docs/part2/06-art.md</code>.</p>
-  <p>Every scene has three columns: <b>Part 1 today</b> (real screenshots) / <b>procedural</b> (code-painted on the existing generator toolkit) / <b>ChatGPT-sourced</b> (processed by the deterministic build). The ChatGPT column is <b style="color:var(--danger)">blocked</b>: this worker has no control of your logged-in Chrome (claude-in-chrome not configured, Kapture extension not connected), so no ChatGPT image has been generated yet.</p>
-  <nav><a href="#scenes">Scenes</a><a href="#backgrounds">Backgrounds</a><a href="#anna">Anna</a><a href="#wardrobe">Wardrobe &amp; tricks</a><a href="#pipeline">Pipelines</a><a href="#prompts">Prompts</a><a href="#decide">Decide</a></nav>
+  <p><span class="status">Pending human approval</span> Nothing is final until you approve. Rationale: <code>docs/part2/06-art.md</code>. Prompts: <code>docs/part2/art/gen/PROMPTS.md</code>.</p>
+  <p>Every scene: <b>Part 1 today</b> (real screenshot) / <b>procedural</b> (code-painted on the existing generator toolkit) / <b>AI-sourced</b> (generated with <b>Google Gemini 3.1 Flash Image</b> via the OpenRouter API, then processed by a deterministic prototype: key-out, registration and seams, quantize-then-vote to the World 1 palette, loops). No browser login was used. AI generation covers <b>World 1 backgrounds and Anna only</b>; the boss and menu AI columns were not generated (budget cap).</p>
+  <nav><a href="#scenes">Scenes</a><a href="#parallax">Parallax</a><a href="#backgrounds">Backgrounds</a><a href="#anna">Anna</a><a href="#wardrobe">Wardrobe &amp; tricks</a><a href="#pipeline">Pipelines</a><a href="#provenance">Provenance</a><a href="#decide">Decide</a></nav>
 </header>
 
 <section id="scenes">
-  <h2>1. Scenes: Part 1 / procedural / ChatGPT</h2>
-
+  <h2>1. Scenes: Part 1 / procedural / AI-sourced</h2>
   <h3>Level 1 — desktop 1280×720</h3>
   <div class="cols">
     <figure><img src="current-desktop-level1.png" alt="Part 1 Level 1 screenshot"><figcaption><b>Part 1</b> — Foresta Incantata, real capture</figcaption></figure>
-    <figure><img src="mockup-level1.png" alt="Procedural Level 1 mockup"><figcaption><b>Procedural</b> — Soglia degli Echi: marble autotiles, 5 layers, baked light, 32×48 Anna, V vent, L magnet, HUD panel</figcaption></figure>
-    <figure><div class="blocked">ChatGPT composite not generated<small>ChatGPT W1 layers + processed Anna + tiles</small></div><figcaption><b>ChatGPT</b> — blocked (no browser control)</figcaption></figure>
+    <figure><img src="mockup-level1.png" alt="Procedural Level 1 mockup"><figcaption><b>Procedural</b> — marble autotiles, baked light, 32×48 Anna, V vent, L magnet, HUD</figcaption></figure>
+    <figure><img src="proc/ai-composite-level1.png" alt="AI-sourced Level 1 composite"><figcaption><b>AI-sourced</b> — generated sky + far + mid + near layers, processed Anna (32×48 ×2), <b>Part 1 tiles</b> tinted to World 1 (the grey lane shows the style gap a hybrid would close with the procedural marble kit)</figcaption></figure>
   </div>
-
-  <h3>Level 1 — iPhone landscape (932×430, letterboxed)</h3>
+  <h3>Level 1 — iPhone landscape (932×430, letterboxed, nearest ×0.597)</h3>
   <div class="cols">
-    <figure><img src="current-iphone-level1.png" alt="Part 1 iPhone Level 1 screenshot"><figcaption><b>Part 1</b> — emulated iPhone (install banner is the browser, not the game)</figcaption></figure>
-    <figure><img src="mockup-level1-iphone.png" alt="Procedural Level 1 at iPhone scale"><figcaption><b>Procedural</b> — nearest ×1.194 sampling at density 1 (shows the pixel-wobble risk from §3.1); ribbon below the DOM buttons</figcaption></figure>
-    <figure><div class="blocked phone">ChatGPT composite not generated<small>iPhone crop of the ChatGPT composite</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+    <figure><img src="current-iphone-level1.png" alt="Part 1 iPhone Level 1"><figcaption><b>Part 1</b> — emulated iPhone (install banner is the browser)</figcaption></figure>
+    <figure><img src="mockup-level1-iphone.png" alt="Procedural Level 1 iPhone view"><figcaption><b>Procedural</b> — with DOM overlays</figcaption></figure>
+    <figure><img src="proc/ai-composite-level1-iphone.png" alt="AI-sourced Level 1 iPhone view"><figcaption><b>AI-sourced</b> — same frame at phone scale; bars in the world's darkest colour</figcaption></figure>
   </div>
-
   <h3>Boss arena</h3>
   <div class="cols">
-    <figure><img src="current-desktop-boss.png" alt="Part 1 boss screenshot"><figcaption><b>Part 1</b> — Custode di Pietra, primitive shapes</figcaption></figure>
-    <figure><img src="mockup-boss.png" alt="Procedural boss mockup"><figcaption><b>Procedural</b> — La Dama dell'Eco, 7-slot debris telegraph with the 3-slot safe lane, boss bar</figcaption></figure>
-    <figure><div class="blocked">ChatGPT composite not generated<small>W6 roof layers + Dama</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+    <figure><img src="current-desktop-boss.png" alt="Part 1 boss"><figcaption><b>Part 1</b></figcaption></figure>
+    <figure><img src="mockup-boss.png" alt="Procedural boss mockup"><figcaption><b>Procedural</b> — La Dama dell'Eco, debris telegraph, safe lane</figcaption></figure>
+    <figure><div class="blocked">Not generated<br>(World 6 out of this run's budget)</div><figcaption><b>AI-sourced</b> — next run</figcaption></figure>
   </div>
-
   <h3>Menu</h3>
   <div class="cols">
-    <figure><img src="current-desktop-menu.png" alt="Part 1 menu screenshot"><figcaption><b>Part 1</b></figcaption></figure>
-    <figure><img src="mockup-menu.png" alt="Procedural menu mockup"><figcaption><b>Procedural</b> — world cards, 9-slice buttons, Guardaroba (title is a placeholder)</figcaption></figure>
-    <figure><div class="blocked">ChatGPT composite not generated<small>balcony key art + procedural UI</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+    <figure><img src="current-desktop-menu.png" alt="Part 1 menu"><figcaption><b>Part 1</b></figcaption></figure>
+    <figure><img src="mockup-menu.png" alt="Procedural menu mockup"><figcaption><b>Procedural</b> — world cards, 9-slice buttons (title is a placeholder)</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-keyart.png" alt="AI World 1 key art"><figcaption><b>AI-sourced</b> — raw World 1 key art (menu/store backdrop candidate; not processed)</figcaption></figure>
   </div>
+  <p id="contrast">Lane contrast (OKLCH L, gate 0.25): <span id="contrast-values">loading proc/report.json…</span></p>
+</section>
 
-  <h3>Other Part 1 captures (reference)</h3>
-  <div class="cols">
-    <figure><img src="current-desktop-level3.png" alt="Part 1 Level 3"><figcaption>Level 3 — maroon on maroon (weakness 3)</figcaption></figure>
-    <figure><img src="current-desktop-finale.png" alt="Part 1 finale"><figcaption>Finale — flat pillars, letter covers the scene</figcaption></figure>
-    <figure><img class="zoom" src="current-desktop-heroine-zoom.png" alt="Part 1 heroine zoom"><figcaption>Anna 16×24, 6× zoom</figcaption></figure>
-  </div>
+<section id="parallax">
+  <h2>2. Live parallax preview (processed AI strips, looping)</h2>
+  <p>Sky fixed; far ×0.2, mid ×0.5, near ×0.8 of one camera speed. Each strip is a processed seamless loop, so any visible jump here is a real seam bug.</p>
+  <div class="parallax"><div class="sky"></div><div class="far"></div><div class="mid"></div><div class="near"></div></div>
 </section>
 
 <section id="backgrounds">
-  <h2>2. Backgrounds — layers and stitched long strips</h2>
-  <p>Target: sky, far (×0.2), mid (×0.5), near (×0.8), sparse foreground; long enough for 116–140-cell levels (mid ≈ 5,760 runtime px without repeat). Scroll each strip horizontally.</p>
+  <h2>3. Backgrounds — raw segments / processed strips</h2>
   <h3>Part 1 today (1920 px loop, flat silhouettes)</h3>
-  <div class="strip"><div class="row"><img src="../../../assets/backgrounds/forest_mid.png" alt="Part 1 forest mid layer"><img src="../../../assets/backgrounds/forest_mid.png" alt=""></div></div>
-  <div class="strip" style="margin-top:8px"><div class="row"><img src="../../../assets/backgrounds/forest_near.png" alt="Part 1 forest near layer"><img src="../../../assets/backgrounds/forest_near.png" alt=""></div></div>
-  <h3>ChatGPT World 1 — raw segments / processed layers / stitched strip</h3>
-  <div class="cols">
-    <figure><div class="blocked">Raw segments 1–4<small>gen/w1-mid-seg*.png</small></div><figcaption>raw downloads</figcaption></figure>
-    <figure><div class="blocked">Processed layers<small>key-out, area-average, quantize, aerial perspective</small></div><figcaption>processed</figcaption></figure>
-    <figure><div class="blocked">Stitched loop<small>registration, horizon lock, min-error seam</small></div><figcaption>stitched</figcaption></figure>
+  <div class="strip"><div class="row"><img src="../../../assets/backgrounds/forest_mid.png" alt="Part 1 forest mid"><img src="../../../assets/backgrounds/forest_mid.png" alt=""></div></div>
+  <h3>AI World 1 — raw generations</h3>
+  <div class="cols two">
+    <figure><img class="soft" src="gen/w1-sky.png" alt="raw sky"><figcaption>w1-sky (opaque)</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-far-seg1.png" alt="raw far seg1"><figcaption>w1-far-seg1</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-far-seg2.png" alt="raw far seg2"><figcaption>w1-far-seg2 — "extend right" (accepted after key-out fix)</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-mid-seg1.png" alt="raw mid seg1"><figcaption>w1-mid-seg1</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-mid-seg2.png" alt="raw mid seg2"><figcaption class="bad">w1-mid-seg2 — "extend right": re-imagined, overlap cost 860, rejected</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-mid-seg2-outpaint.canvas.png" alt="outpaint canvas"><figcaption>outpaint canvas: right 40% of seg1 + magenta (deterministic)</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-mid-seg2-outpaint.png" alt="raw mid outpaint"><figcaption class="ok">w1-mid-seg2-outpaint — overlap 635 px (canvas 633), cost 34, accepted</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-near-seg1.png" alt="raw near seg1"><figcaption>w1-near-seg1</figcaption></figure>
+    <figure><img class="soft" src="gen/w1-near-seg2.png" alt="raw near seg2"><figcaption class="bad">w1-near-seg2 — "extend right": cost 145, rejected → kept as a separate loop variant</figcaption></figure>
+  </div>
+  <h3>Processed strips (native, drawn ×2 in game) — scroll horizontally</h3>
+  <div class="strip"><div class="row"><img src="proc/w1-far-strip.png" alt="far strip"><img src="proc/w1-far-strip.png" alt=""></div></div>
+  <div class="strip" style="margin-top:8px"><div class="row"><img src="proc/w1-mid-strip.png" alt="mid strip"><img src="proc/w1-mid-strip.png" alt=""><img src="proc/w1-mid-strip.png" alt=""></div></div>
+  <div class="strip" style="margin-top:8px"><div class="row"><img src="proc/w1-near-strip.png" alt="near strip"><img src="proc/w1-near-strip-variant.png" alt="near strip variant"><img src="proc/w1-near-strip.png" alt=""><img src="proc/w1-near-strip-variant.png" alt=""></div></div>
+  <h3>Pipeline demo — mid layer</h3>
+  <div class="cols two">
+    <figure><img class="soft" src="proc/demo-mid-raw.png" alt="raw mid"><figcaption>raw (50%)</figcaption></figure>
+    <figure><img src="proc/demo-mid-native-x2.png" alt="processed mid"><figcaption>processed: key-out → placement contract → haze → quantize-then-vote to the 25-colour W1 palette (×2)</figcaption></figure>
   </div>
 </section>
 
 <section id="anna">
-  <h2>3. Anna — reference sheet and poses</h2>
+  <h2>4. Anna — reference sheet and poses</h2>
   <div class="cols">
     <figure><img class="zoom" src="current-desktop-heroine-zoom.png" alt="Part 1 Anna"><figcaption><b>Part 1</b> — 16×24</figcaption></figure>
-    <figure><img src="mockup-heroine-palettes.png" alt="Procedural Anna poses and world palettes"><figcaption><b>Procedural</b> — 32×48, six poses from one pose painter, six world palettes, frame budget</figcaption></figure>
-    <figure><div class="blocked">ChatGPT reference sheet + idle/run/jump<small>raw vs processed 32×48 cells, pipeline-demo.png</small></div><figcaption><b>ChatGPT</b> — blocked</figcaption></figure>
+    <figure><img src="mockup-heroine-palettes.png" alt="Procedural Anna"><figcaption><b>Procedural</b> — 32×48 pose painter</figcaption></figure>
+    <figure><img class="soft" src="gen/anna-ref.png" alt="AI Anna reference sheet raw"><figcaption><b>AI raw</b> — reference sheet</figcaption></figure>
+  </div>
+  <div class="cols" style="margin-top:12px">
+    <figure><img src="proc/anna-ref-cells-x4.png" alt="AI Anna reference processed"><figcaption><b>AI processed</b> — reference views → 32×48 cells (×4), Anna palette + outline</figcaption></figure>
+    <figure><img class="soft" src="gen/anna-run.png" alt="AI Anna run raw"><figcaption><b>AI raw</b> — run key poses</figcaption></figure>
+    <figure><img src="proc/anna-run-cells-x4.png" alt="AI Anna run processed"><figcaption><b>AI processed</b> — 4 run keys, 32×48 (×4)</figcaption></figure>
+  </div>
+  <div class="cols" style="margin-top:12px">
+    <figure><img class="soft" src="gen/anna-idle.png" alt="AI Anna idle raw"><figcaption><b>AI raw</b> — idle (second pose came out as a side view, not "breathing in")</figcaption></figure>
+    <figure><img src="proc/anna-idle-cells-x4.png" alt="AI Anna idle processed"><figcaption><b>AI processed</b> — idle cells (×4)</figcaption></figure>
+    <figure><div class="cols" style="grid-template-columns:repeat(3,1fr);gap:6px"><img class="soft" src="proc/demo-anna-raw.png" alt="raw figure"><img class="soft" src="proc/demo-anna-keyed.png" alt="keyed figure"><img src="proc/demo-anna-cell-x8.png" alt="processed cell"></div><figcaption><b>Pipeline demo</b> — raw figure → keyed → 32×48 cell (×8)</figcaption></figure>
   </div>
 </section>
 
 <section id="wardrobe">
-  <h2>4. Wardrobe, shop and trick moments (scope addition)</h2>
+  <h2>5. Wardrobe, shop and trick moments</h2>
   <div class="cols two">
-    <figure><img src="mockup-wardrobe.png" alt="Wardrobe and shop mockup"><figcaption><b>Procedural</b> — 6 slots, look states (owned, equipped, level, stars, Coccoline, IAP, weekly), opt-in try-on button</figcaption></figure>
-    <figure><img src="mockup-tricks.png" alt="Trick telegraphs and rewarded offers mockup"><figcaption><b>Procedural</b> — trick telegraphs in echo cyan (never danger red, never lethal); +1 heart and ×2 Coccoline offer cards</figcaption></figure>
+    <figure><img src="mockup-wardrobe.png" alt="Wardrobe mockup"><figcaption><b>Procedural</b> — slots, look states, opt-in try-on</figcaption></figure>
+    <figure><img src="mockup-tricks.png" alt="Trick telegraphs"><figcaption><b>Procedural</b> — trick telegraphs (cyan, never lethal) + offer cards</figcaption></figure>
   </div>
 </section>
 
 <section id="pipeline">
-  <h2>5. Pipeline comparison</h2>
+  <h2>6. Pipeline comparison</h2>
   <table>
-    <tr><th></th><th>Procedural (code-painted)</th><th>ChatGPT-sourced</th><th>Hybrid: ChatGPT backgrounds + procedural sprites/tiles/UI</th></tr>
-    <tr><td>Look</td><td>Crisp, readable; already a clear upgrade. Background richness capped by painting code.</td><td>Richest painterly backgrounds; sprites risk mush at 32×48.</td><td>Rich backgrounds behind a crisp lane.</td></tr>
-    <tr><td>Consistency</td><td>Perfect by construction.</td><td>Reference sheets + validator; drift costs retries.</td><td>Drift only in backgrounds, fixed by seam/horizon/palette steps.</td></tr>
-    <tr><td>Animation volume</td><td>Full frame budget; 30 looks as overlays.</td><td>Key poses only; in-betweens procedural.</td><td>Full procedural budget for everything that moves.</td></tr>
-    <tr><td>Determinism</td><td>Full.</td><td>Build yes; generation no (source committed).</td><td>Same as ChatGPT, backgrounds only.</td></tr>
-    <tr><td>Effort</td><td>~11–13 weeks</td><td>~13–16 weeks, ~500–650 generations</td><td>~12–14 weeks, ~250–350 generations</td></tr>
-    <tr><td>Risk</td><td>Backgrounds less "stunning".</td><td>Seams, palette mush, licensing, rate limits, browser access (blocked).</td><td>Style mismatch; mitigated by palette lock, aerial perspective, lane-contrast gate.</td></tr>
-    <tr><td>Evidence today</td><td>6 mockups rendered and reviewed</td><td>none</td><td>procedural half only</td></tr>
+    <tr><th></th><th>Procedural</th><th>AI-sourced (Gemini image + deterministic processing)</th><th>Hybrid: AI backgrounds + procedural sprites/tiles/UI</th></tr>
+    <tr><td>Look</td><td>Crisp, readable; already a clear upgrade.</td><td>Richest backgrounds (see composite); processed Anna reads well at 32×48.</td><td>Rich backgrounds behind a crisp, consistent lane.</td></tr>
+    <tr><td>Consistency</td><td>Perfect by construction.</td><td>Anna consistent across ref/run; one idle pose drifted; "extend right" seams failed, outpaint canvas works.</td><td>Drift confined to backgrounds, where acceptance rules catch it.</td></tr>
+    <tr><td>Animation volume</td><td>Full frame budget.</td><td>Key poses only; in-betweens procedural.</td><td>Full procedural budget for moving things.</td></tr>
+    <tr><td>Determinism</td><td>Full.</td><td>Processing yes; generation no (raw PNG + prompt committed).</td><td>Same, backgrounds only.</td></tr>
+    <tr><td>Cost / speed</td><td>Dev time only.</td><td>~$0.067 and ~12 s per image (measured, 12 calls).</td><td>~250–350 images ≈ $17–24.</td></tr>
+    <tr><td>Risk</td><td>Backgrounds less "stunning".</td><td>Seams, identity drift, lane contrast, tile style gap.</td><td>Style mismatch; mitigated by palette lock + lane gate.</td></tr>
   </table>
-  <div class="rec"><b>Recommendation: hybrid.</b> Procedural sprites, tiles, UI, telegraphs and FX (proven, full animation volume, deterministic); ChatGPT for long parallax backgrounds and store key art. The ChatGPT Anna sheet becomes the design reference for the painter; switch characters to ChatGPT only if the Phase 0 side-by-side clearly wins.</div>
-  <h3>Deterministic processing for ChatGPT sources</h3>
-  <p>magenta key-out → crop → normalize (head height, feet baseline) → area-average downsample → OKLab quantize to the locked world palette (sprites: no dither; backgrounds: 2×2 Bayer) → outline / flash / aerial perspective → segment registration, horizon lock, min-error seam, loop → slice → <code>assets/</code> + source hashes → validation and lane-contrast gate. <code>npm run gen</code> never calls ChatGPT; raw PNGs + prompts are committed source.</p>
+  <div class="rec"><b>Recommendation: hybrid.</b> AI-sourced long parallax backgrounds (using the outpaint canvas for continuations) + procedural tiles, UI, telegraphs and FX. For characters, the processed AI Anna is strong enough to become the design reference and possibly the key-pose source, with procedural in-betweens and wardrobe layers — your call after comparing section 4.</div>
 </section>
 
-<section id="prompts">
-  <h2>6. Prompts</h2>
-  <p>No prompt has been sent yet (blocked). These are the planned fixed blocks; every download will be saved with its exact prompt as <code>gen/&lt;name&gt;.prompt.txt</code> and shown here.</p>
-  <h3>Style sheet (all art)</h3>
-  <pre>Cozy fairy-tale 16-bit pixel art look, clean shapes, soft hue-shifted shading, light from the upper left. No text, no logos, no UI, no watermark, no signature.</pre>
-  <h3>World 1 block — Soglia degli Echi</h3>
-  <pre>Moonlit mirrored antechamber of a fairy-tale palace at night. Palette: deep indigo #140f2a, violet #3a2f66, periwinkle #6564a0, lilac marble #bdb2d8, moon-white #f4eefb, gold #e0a93f, echo cyan #8ff0e6, soft rose #ff8fa3. Light from the upper left (moon through tall arched windows). Horizon at 62% of image height. Orthographic side view for a 2D platformer background.</pre>
-  <h3>Layer: mid, segment 1</h3>
-  <pre>[STYLE] [WORLD 1] Mid-ground layer only: tall gilded mirrors showing faint teal reflections of a pine forest, eastern rooftops and a castle, between fluted marble pillars, soft light shafts. Isolated shapes on a flat solid #FF00FF magenta background, nothing touching the top or bottom edge, flat bottom edge. Wide landscape image.</pre>
-  <h3>Layer: mid, segment n+1 (edit of segment n)</h3>
-  <pre>Extend this scene to the right as a direct continuation. Keep the exact horizon height, light direction, palette and the magenta background. The left edge must continue the right edge of the attached image.</pre>
-  <h3>Anna reference sheet</h3>
-  <pre>[STYLE] Original cute chibi princess-adventurer character reference sheet: long brown hair with a small gold bell hairpin, light "sugar-paper" blue quilted puffer jacket, dark blue jeans, white sneakers. Front, side and back views, full body, equal height, feet on a thin black baseline, colour swatches with hex codes below. Flat solid #FF00FF background.</pre>
+<section id="provenance">
+  <h2>7. Provenance, licence, cost</h2>
+  <table>
+    <tr><th>Files</th><th>Model / service</th><th>Terms (commercial use)</th></tr>
+    <tr><td><code>gen/*.png</code> (12 images)</td><td><code>google/gemini-3.1-flash-image</code> via OpenRouter chat completions API, 2026-09-15</td><td>Gemini API Additional Terms: "Use of Generated Content — Google won't claim ownership over that content" (<a href="https://ai.google.dev/gemini-api/terms" style="color:var(--echo)">ai.google.dev/gemini-api/terms</a>); Generative AI Prohibited Use Policy; OpenRouter Terms (<a href="https://openrouter.ai/terms" style="color:var(--echo)">openrouter.ai/terms</a>). No non-commercial restriction. Outputs carry an invisible SynthID watermark. Similar output may be generated for others (no exclusivity).</td></tr>
+  </table>
+  <p>Rejected options: direct Gemini API (HTTP 429 quota exhausted on every image model); Pollinations (its only listed model is <code>sana</code>, whose weights licence was not verified as commercial, so not used); local FLUX.1-schnell (Apache-2.0, but gated behind a Hugging Face login and a 22 GB download).</p>
+  <h3>Prompts (exact text + footer per file)</h3>
+  <details><summary>w1-keyart</summary><object data="gen/w1-keyart.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-sky</summary><object data="gen/w1-sky.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-far-seg1</summary><object data="gen/w1-far-seg1.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-far-seg2</summary><object data="gen/w1-far-seg2.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-mid-seg1</summary><object data="gen/w1-mid-seg1.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-mid-seg2</summary><object data="gen/w1-mid-seg2.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-mid-seg2-outpaint</summary><object data="gen/w1-mid-seg2-outpaint.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-near-seg1</summary><object data="gen/w1-near-seg1.prompt.txt" type="text/plain"></object></details>
+  <details><summary>w1-near-seg2</summary><object data="gen/w1-near-seg2.prompt.txt" type="text/plain"></object></details>
+  <details><summary>anna-ref</summary><object data="gen/anna-ref.prompt.txt" type="text/plain"></object></details>
+  <details><summary>anna-idle</summary><object data="gen/anna-idle.prompt.txt" type="text/plain"></object></details>
+  <details><summary>anna-run</summary><object data="gen/anna-run.prompt.txt" type="text/plain"></object></details>
 </section>
 
 <section id="decide">
-  <h2>7. Decisions for you</h2>
+  <h2>8. Decisions for you</h2>
   <div class="decide">
-    <label><input type="checkbox" disabled> Pipeline: <b>hybrid</b> (recommended) / procedural only / ChatGPT for everything</label>
-    <label><input type="checkbox" disabled> Style direction of the procedural mockups (Level 1, boss, menu)</label>
-    <label><input type="checkbox" disabled> Six world palettes (§3.2)</label>
-    <label><input type="checkbox" disabled> Art density ×2 at unchanged runtime sizes, pending the real-iPhone wobble test (§3.1)</label>
-    <label><input type="checkbox" disabled> Wardrobe: 6 slots × 5 looks at launch, trick colour rule (cyan = trick, red = danger)</label>
-    <label><input type="checkbox" disabled> Unblock ChatGPT: enable claude-in-chrome or connect Kapture for this worker, or drop raw PNGs + prompts into <code>docs/part2/art/gen/</code></label>
+    <label><input type="checkbox" disabled> Pipeline: <b>hybrid</b> (recommended) / procedural only / AI for everything</label>
+    <label><input type="checkbox" disabled> World 1 AI background direction (section 1–3)</label>
+    <label><input type="checkbox" disabled> Anna: AI-processed look as the character reference / key-pose source (section 4)</label>
+    <label><input type="checkbox" disabled> Six world palettes; ×2 density pending the real-iPhone wobble test</label>
+    <label><input type="checkbox" disabled> Budget for the full AI run (~250–350 images ≈ $17–24 for hybrid)</label>
   </div>
-  <p>Reply to the orchestrator with your choices; checkboxes are not saved.</p>
+  <p>Checkboxes are not saved; reply to the orchestrator.</p>
 </section>
+<script>
+  fetch("proc/report.json").then((r) => r.json()).then((rep) => {
+    const c = rep.laneContrast; if (!c) return;
+    const fmt = (o) => o ? `ΔL ${o.meanAbsDeltaL} (art ${o.artL} vs background ${o.bgL})` : "n/a";
+    const pass = (o) => o && o.meanAbsDeltaL >= c.threshold;
+    document.getElementById("contrast-values").innerHTML =
+      `Anna ${fmt(c.anna)} <b class="${pass(c.anna) ? "ok" : "bad"}">${pass(c.anna) ? "pass" : "below gate"}</b> · lane top row ${fmt(c.tileTopRow)} <b class="${pass(c.tileTopRow) ? "ok" : "bad"}">${pass(c.tileTopRow) ? "pass" : "below gate"}</b>`;
+  }).catch(() => { document.getElementById("contrast-values").textContent = "report.json unavailable"; });
+</script>
 </body>
 </html>

@@ -15,13 +15,13 @@ Direction changes folded in:
 - **Scope addition after market research**: wardrobe meta, opt-in rewarded boosts, trick
   moments, weekly time trial, cosmetic IAP (§3.9, §3.10).
 
-> **Blocked, not tested:** no ChatGPT image exists in this branch yet. This worker has no
-> control of the human's logged-in Chrome: the claude-in-chrome MCP is not configured in the
-> session, and the Kapture MCP has no connected extension. `review.html` is built with three
-> columns per scene (Part 1 / procedural code mockup / ChatGPT composite). The ChatGPT column
-> is an explicit "blocked" placeholder until `docs/part2/art/gen/`, `pipeline-demo.png` and the
-> ChatGPT composites exist (§9). The code mockups are a real, reviewable alternative
-> pipeline (§4.0), not throwaway sketches.
+> **AI generation: done for World 1 backgrounds and Anna (§4.10).** The human had no browser
+> access to give, so generation used an existing API key: `google/gemini-3.1-flash-image` via
+> OpenRouter, 12 images, $0.814. Raw PNGs and exact prompts are in `docs/part2/art/gen/`;
+> processed strips, Anna cells, composites and demo pieces are in `docs/part2/art/proc/`.
+> `review.html` shows Part 1 / procedural mockup / AI-sourced side by side. The boss and menu AI
+> columns weren't generated (budget cap). The code mockups remain a real, reviewable alternative
+> pipeline (§4.0).
 
 Deliverables in `docs/part2/art/` today:
 
@@ -453,8 +453,8 @@ keeps thin lines better than averaging (measured in §4.2), and is still fully d
 | Animation volume | Full frame budget; 30 looks are overlays on one pose painter. Appeal ceiling of code-drawn characters. | Key poses only; in-betweens procedural (§4.6). | Full procedural frame budget for everything that moves. |
 | Determinism | Full, generator only. | Build deterministic; generation isn't (source committed). | Same as ChatGPT, backgrounds only. |
 | Effort (1 dev) | ~11–13 weeks | ~13–16 weeks incl. ~500–650 generations | ~12–14 weeks incl. ~250–350 generations (backgrounds + store key art) |
-| Risk | Backgrounds less "stunning" than the human wants. | Seams, palette mush, licensing/copyright (§4.7), rate limits, browser access (**blocked today**). | Style mismatch between painterly layers and crisp sprites; mitigated by palette lock, aerial perspective and the lane-contrast gate (§4.5). |
-| Evidence today | 6 mockups rendered and reviewed by eye | none (blocked) | procedural half proven; background half none |
+| Risk | Backgrounds less "stunning" than the human wants. | Seams (plain "extend right" fails; outpaint canvas works), identity drift, lane readability (Anna below gate), licensing/exclusivity (§4.7, §4.10). | Style mismatch between painterly layers and crisp sprites; mitigated by palette lock, aerial perspective and the lane-contrast gate (§4.5). |
+| Evidence today | 6 mockups rendered and reviewed by eye | 12 real generations via Gemini 3.1 Flash Image, processed World 1 strips, Anna cells and composites (§4.10) | both halves have evidence; the lane gate still fails for Anna |
 
 **Recommendation: hybrid.** Keep the procedural pipeline for sprites, tiles, UI, telegraphs and
 FX: the mockups prove it, it gives the full animation volume, and it stays deterministic. Use
@@ -676,6 +676,90 @@ generation, spread across phases. Backgrounds for Worlds 1 and 2 go first (~150)
 
 `npm run gen` stays offline and deterministic: it never calls ChatGPT. Generation is a separate,
 human-in-the-loop step whose output is committed source.
+
+### 4.10 First real AI run: World 1 backgrounds + Anna (2026-09-15)
+
+**Route.** The human had no browser access to give, so generation used existing API keys from
+`~/.config` (values never printed or committed).
+
+| Option tried | Outcome |
+| --- | --- |
+| Gemini API direct (`gemini-3-pro-image`, `gemini-2.5-flash-image`) | HTTP 429 `RESOURCE_EXHAUSTED` on every image model |
+| OpenRouter image key | ≈$0.03 left. One call returned an image, but the script crashed before saving it (lost; not in the ledger) |
+| **OpenRouter main key → `google/gemini-3.1-flash-image`** | **Used.** 12 images, **$0.814**, ≈$0.067 and ≈12 s per image. Hard cap $0.80, raised to $0.90 for the outpaint test because the balance is shared with other tools |
+| Pollinations (no login) | Not used: its only listed model is `sana`, whose weights licence wasn't verified as commercial |
+| Local FLUX.1-schnell (Apache-2.0) | Not used: gated behind a Hugging Face login, 22 GB download |
+
+**Licence.** Gemini API Additional Terms of Service
+(<https://ai.google.dev/gemini-api/terms>), section "Use of Generated Content": "Google won't
+claim ownership over that content", and similar content may be generated for others (no
+exclusivity). The Generative AI Prohibited Use Policy and OpenRouter's terms
+(<https://openrouter.ai/terms>) apply too. There is no non-commercial restriction. Outputs carry an
+invisible SynthID watermark. Every `gen/<name>.prompt.txt` footer records the model, date,
+returned size, cost and terms URLs. The terms also bar "API Clients" directed at under-18 users;
+that clause is about applications calling the API, while the game ships offline-generated
+images and never calls it.
+**Market check:** confirm with Yandex support (same ticket as req. 3.6) whether AI-generated
+assets need disclosure.
+
+**Acceptance against `PROMPTS.md`.**
+
+| File | Result |
+| --- | --- |
+| `w1-keyart` | Accepted: colonnade, mirrors showing forest/rooftops/castle, moon light shafts, marble floor |
+| `w1-sky` | Accepted |
+| `w1-far-seg1/2` | Checklist miss: not cut out on magenta (an opaque band). Processing accepted the pair (overlap 234 px, cost 36.9, base line equal) |
+| `w1-mid-seg1` | Accepted |
+| `w1-mid-seg2` ("extend right") | **Rejected**: re-imagined image, overlap cost 860 |
+| `w1-mid-seg2-outpaint` (canvas) | **Accepted**: overlap 635 px vs canvas split 633, cost 34 |
+| `w1-near-seg1/2` | seg1 accepted; seg2 **rejected** (cost 145 > 120), kept as a separate loop variant. Lantern glows bleed pink into the magenta (handled by key-out) |
+| `anna-ref` | Accepted: 3 views, hairpin, quilting, jeans, sneakers, swatches, baseline |
+| `anna-run` | Accepted: 4 consistent right-facing keys |
+| `anna-idle` | Partial: pose 2 came out as a side view, not "breathing in" |
+
+No regenerations were possible inside the budget cap.
+
+**Processing results** (throwaway prototype outside the repo, deterministic):
+
+| Layer | Continuation | Native loop | Wrap-edge diff vs adjacent-column diff |
+| --- | --- | --- | --- |
+| far | accepted | 1018 px (slices 960 + 58) | 6.3 vs 6.6 |
+| mid | accepted (outpaint) | 684 px | 18.0 vs 65.4 |
+| near | rejected → 2 variants | 232 px each | 25.7 vs 49.0 / 25.5 vs 53.1 |
+
+Two complete runs produced identical SHA-256 for all 10 hashed outputs. Anna cells: reference
+18×46 / 15×46 / 18×46, run 24×46 / 19×46 / 24×46 / 19×46, all inside the 32×48 grid with feet on
+the bottom row.
+
+**Findings, each a structural fix (not a prompt re-roll):**
+
+1. **"Extend to the right" doesn't continue an image.** The edit re-imagines it. The fix is the
+   **outpaint canvas**: the right 40% of the previous segment on a magenta canvas, plus
+   acceptance rules (overlap within ±12 px of the split, cost ≤120, base line ±8 px). Now the
+   default in `PROMPTS.md`.
+2. **Soft-edge key-out must be adjacent to real background.** Colour distance alone flagged
+   light-lilac interior pixels and punched transparent specks into the pillars.
+3. **Layers need a placement contract.** "Image height = screen height" made 21:9 layers
+   screen-sized, and the near layer covered the lane. Now each layer's content band is scaled to
+   a fixed native height with its bottom pinned to a fixed row (far 150→262, mid 210→290,
+   near 96→292).
+4. **Horizon check for cut-out layers uses the content base line.** The luminance-edge
+   detector reacted to mirror contents and false-rejected the good outpaint (586 vs 562).
+5. **Lane readability is not solved yet.** Lane tiles pass (ΔL 0.451); **Anna fails the gate at
+   ΔL 0.236 < 0.25** in front of the mid-tone mirrors. A flat darkening of the lane band was
+   tried and reverted: it drew a hard band edge across every mirror and lowered Anna's score to
+   0.227, because her dark half then matched the background. Next: replace the per-pixel metric
+   with a **silhouette-separation** metric (the outline ring vs the background just outside it)
+   and fix with a light rim on the sprite or a dithered falloff, not a flat band.
+6. **Faces lose detail at 32×48.** Eyes and mouth collapse to 1–2 px. Face features should be a
+   procedural overlay or `<name>.fix.png` on top of the processed cell.
+7. **Part 1 tiles clash with AI backgrounds** (grey gravel under painted marble). This
+   supports the hybrid recommendation: a matching procedural/kit tile set.
+8. **Isolated 1-px highlights are lost** in reduction (§4.2 prototype evidence). Point lights
+   and emblems belong in sprites.
+
+**Still not tested:** boss arena and menu backgrounds, Worlds 2–6, wardrobe look edits, real
+device frame time with the long strips.
 
 ---
 

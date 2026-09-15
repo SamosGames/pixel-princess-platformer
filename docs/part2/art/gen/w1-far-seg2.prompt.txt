@@ -1,0 +1,9 @@
+Extend the attached image to the right as a direct continuation of the same colonnade. Keep exactly the same horizon height (62%), band limits (35% to 70%), sizes and spacing, colours, light direction and flat #FF00FF magenta background. The new image's left edge must continue seamlessly from the attached image's right edge. Vary the details a little (one window with a curtain, one broken arch), no new objects outside the band. Cozy fairy-tale 16-bit pixel art look for a 2D side-scrolling platformer. Clean readable shapes, soft hue-shifted shading (shadows lean violet-blue, highlights lean warm), light from the upper left. Orthographic side view, no perspective tilt, no camera blur, no depth of field. No text, no letters, no numbers, no logos, no user interface, no watermark, no signature.
+
+---
+model: google/gemini-3.1-flash-image via OpenRouter chat completions (modalities image+text, aspect_ratio 21:9); cost_usd: 0.0678545
+attachments: w1-far-seg1.png
+date: 2026-09-15T14:34:04.730Z
+returned: image/png 1584x672
+attempt: 1
+licence/terms: Gemini API Additional Terms of Service https://ai.google.dev/gemini-api/terms ("Use of Generated Content: ... Google won't claim ownership over that content"); Google Generative AI Prohibited Use Policy https://policies.google.com/terms/generative-ai/use-policy; OpenRouter Terms of Service https://openrouter.ai/terms. Output carries an invisible SynthID watermark. Commercial use: permitted by these terms (no non-commercial restriction).

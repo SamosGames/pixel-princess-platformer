@@ -1,7 +1,13 @@
 # ChatGPT prompt list — World 1 backgrounds + Anna (generation order)
 
-**Not tested — pending real generations.** Nothing below has been sent to ChatGPT yet. Design:
-`docs/part2/06-art.md` §4.
+**Tested on 2026-09-15 with `google/gemini-3.1-flash-image` via the OpenRouter API** (no
+browser login; the ChatGPT browser route was not available). The generated files and their exact
+prompts live next to this file. Every `<name>.prompt.txt` ends with the model, date, returned
+size, cost and terms URL. Twelve generations cost $0.814 in total: B00–B02, B04–B05, B09–B10,
+A01–A03, plus the outpaint continuation below. Design: `docs/part2/06-art.md` §4.
+
+Wording note: the text below says "ChatGPT" in places. The same prompts were used with the Gemini
+image model; only the transport differs.
 
 ## Rules for every generation
 
@@ -166,7 +172,33 @@ Accept if: [ ] common checklist · [ ] band limits and straight base line at ~75
 both side edges · [ ] the mirrors read as mirrors (glass + frame) at 25% zoom · [ ] no mirror
 shows a person or a face.
 
-### B05–B07 `w1-mid-seg2.png` … `w1-mid-seg4.png` — mid layer, extend right (same prompt each time)
+### Continuation method: outpaint canvas (preferred), measured on World 1
+
+Observed with `google/gemini-3.1-flash-image`: a plain "extend the attached image to the right"
+edit returns a **re-imagined** image, not a continuation. Mid-layer overlap cost was 860
+(unusable), near 145 (rejected), and far only matched after the key-out fix. The root cause is
+that the model never sees which pixels must continue.
+
+**Outpaint canvas** instead: build `seg(n+1)` input deterministically as the **right 40%** of
+`seg(n)` placed at the left of a canvas of the same size, filled with `#FF00FF`. The build step
+records the canvas recipe, so it's reproducible. Then send:
+
+```text
+[STYLE]
+[W1 without the horizon sentence]
+The attached image is the <layer> of a 2D platformer background: <layer description> on a flat
+solid #FF00FF magenta background. Its LEFT 40% is finished artwork; the RIGHT 60% is empty
+magenta. Complete the image by continuing the same <elements> into the empty area: same sizes and
+spacing, same top line and base line, same colours and light. Do not change the finished left
+part at all; keep it pixel-identical. <what is new in this segment>. Everything that is not
+<elements> stays flat solid #FF00FF magenta.
+```
+
+Result for `w1-mid-seg2-outpaint.png`: registration found overlap 635 px (canvas 633 px) at cost
+34, with a matching pillar rhythm. Accept a continuation only if the processing reports overlap
+within ±12 px of the canvas split, cost ≤120 and base line within ±8 px.
+
+### B05–B07 `w1-mid-seg2.png` … `w1-mid-seg4.png` — mid layer, extend right (same prompt each time; superseded by the outpaint canvas above)
 
 ```text
 Extend the attached image to the right as a direct continuation of the same hall. Keep exactly

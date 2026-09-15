@@ -1,0 +1,15 @@
+Cozy fairy-tale 16-bit pixel art look for a 2D side-scrolling platformer. Clean readable shapes, soft hue-shifted shading (shadows lean violet-blue, highlights lean warm), light from the upper left. Orthographic side view, no perspective tilt, no camera blur, no depth of field. No text, no letters, no numbers, no logos, no user interface, no watermark, no signature.
+
+World: "Threshold of Echoes", the moonlit mirrored antechamber of a fairy-tale palace at night. Palette, use only these colour families: deep indigo #140f2a, violet #3a2f66, periwinkle #6564a0, lilac marble #bdb2d8, moon white #f4eefb, warm gold #e0a93f, echo cyan #8ff0e6, soft rose #ff8fa3. The moon shines through tall arched windows from the upper left. Keep the horizon (the floor line of the distant architecture) at 62% of the image height, measured from the top.
+
+Draw everything on a completely flat, solid #FF00FF magenta background: one uniform colour, no gradient, no texture, no floor, no cast shadow on the background, no glow bleeding into it.
+
+Middle layer only, matching the attached reference: tall gilded mirror frames standing between fluted lilac marble pillars. The mirror glass shows faint cyan reflections of a pine forest and a castle silhouette, with a thin diagonal glint. Moonlight from the upper left gives the pillars a bright left edge. Keep all artwork inside a horizontal band from 25% to 75% of the image height; pillar bases sit on a straight line at 75%. Artwork runs edge to edge horizontally. Medium contrast.
+
+---
+model: google/gemini-3.1-flash-image via OpenRouter chat completions (modalities image+text, aspect_ratio 21:9); cost_usd: 0.0679515
+attachments: w1-keyart.png
+date: 2026-09-15T14:34:18.117Z
+returned: image/png 1584x672
+attempt: 1
+licence/terms: Gemini API Additional Terms of Service https://ai.google.dev/gemini-api/terms ("Use of Generated Content: ... Google won't claim ownership over that content"); Google Generative AI Prohibited Use Policy https://policies.google.com/terms/generative-ai/use-policy; OpenRouter Terms of Service https://openrouter.ai/terms. Output carries an invisible SynthID watermark. Commercial use: permitted by these terms (no non-commercial restriction).

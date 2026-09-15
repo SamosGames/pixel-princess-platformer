@@ -1,0 +1,156 @@
+{
+ "w1-sky": {
+  "raw": "1376x768",
+  "native": "640x360",
+  "sha": "2a8754752e3f"
+ },
+ "w1-far": {
+  "seg2": "w1-far-seg2.png",
+  "registration": {
+   "cost": 36.945278298936834,
+   "o": 234,
+   "dy": 0
+  },
+  "horizonEdgeRows": [
+   514,
+   514
+  ],
+  "baseLine": [
+   515,
+   515
+  ],
+  "accepted": true,
+  "reasons": [],
+  "long": {
+   "width": 1018,
+   "cut": 88,
+   "wrap": {
+    "across": 6.3,
+    "adjacent": 6.6
+   },
+   "slices": [
+    "960x360",
+    "58x360"
+   ],
+   "sha": "7ddb0c7eec19"
+  }
+ },
+ "w1-mid": {
+  "seg2": "w1-mid-seg2-outpaint.png",
+  "registration": {
+   "cost": 33.95965638901672,
+   "o": 635,
+   "dy": 0
+  },
+  "horizonEdgeRows": [
+   586,
+   562
+  ],
+  "baseLine": [
+   672,
+   672
+  ],
+  "accepted": true,
+  "reasons": [],
+  "long": {
+   "width": 684,
+   "cut": 108,
+   "wrap": {
+    "across": 18,
+    "adjacent": 65.4
+   },
+   "slices": [
+    "684x360"
+   ],
+   "sha": "e682fc76866b"
+  }
+ },
+ "w1-near": {
+  "seg2": "w1-near-seg2.png",
+  "registration": {
+   "cost": 144.97070217497046,
+   "o": 702,
+   "dy": 0
+  },
+  "horizonEdgeRows": [
+   549,
+   549
+  ],
+  "baseLine": [
+   549,
+   549
+  ],
+  "accepted": false,
+  "reasons": [
+   "overlap cost 145.0 > 120"
+  ],
+  "variants": [
+   {
+    "width": 232,
+    "cut": 45,
+    "wrap": {
+     "across": 25.7,
+     "adjacent": 49
+    },
+    "sha": "70b6bd3d3cab"
+   },
+   {
+    "width": 232,
+    "cut": 45,
+    "wrap": {
+     "across": 25.5,
+     "adjacent": 53.1
+    },
+    "sha": "6a5bd2328e09"
+   }
+  ]
+ },
+ "anna-ref": {
+  "figures": 3,
+  "cells": [
+   "18x46",
+   "15x46",
+   "18x46"
+  ],
+  "sha": "b618216742aa"
+ },
+ "anna-idle": {
+  "figures": 2,
+  "cells": [
+   "17x46",
+   "19x46"
+  ],
+  "sha": "665ec547d35c"
+ },
+ "anna-run": {
+  "figures": 4,
+  "cells": [
+   "24x46",
+   "19x46",
+   "24x46",
+   "19x46"
+  ],
+  "sha": "b6c30b19299c"
+ },
+ "composite": {
+  "sha": "e78ec28c1d0c"
+ },
+ "laneContrast": {
+  "threshold": 0.25,
+  "anna": {
+   "pixels": 3076,
+   "meanAbsDeltaL": 0.236,
+   "artL": 0.49,
+   "bgL": 0.414
+  },
+  "tileTopRow": {
+   "pixels": 9216,
+   "meanAbsDeltaL": 0.451,
+   "artL": 0.785,
+   "bgL": 0.334
+  }
+ },
+ "compositeIphone": {
+  "sha": "bbe58c0afc8a"
+ }
+}

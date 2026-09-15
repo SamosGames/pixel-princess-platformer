@@ -1,0 +1,13 @@
+Cozy fairy-tale 16-bit pixel art look for a 2D side-scrolling platformer. Clean readable shapes, soft hue-shifted shading (shadows lean violet-blue, highlights lean warm), light from the upper left. Orthographic side view, no perspective tilt, no camera blur, no depth of field. No text, no letters, no numbers, no logos, no user interface, no watermark, no signature.
+
+World: "Threshold of Echoes", the moonlit mirrored antechamber of a fairy-tale palace at night. Palette, use only these colour families: deep indigo #140f2a, violet #3a2f66, periwinkle #6564a0, lilac marble #bdb2d8, moon white #f4eefb, warm gold #e0a93f, echo cyan #8ff0e6, soft rose #ff8fa3. The moon shines through tall arched windows from the upper left.
+
+The attached image is the middle layer of a 2D platformer background: tall gilded mirror frames between fluted lilac marble pillars on a flat solid #FF00FF magenta background. Its LEFT 40% is finished artwork; the RIGHT 60% is empty magenta. Complete the image by continuing the same row of pillars and mirrors into the empty area: same pillar width and spacing, same mirror size and gold frame, same top line and base line, same colours and light. Do not change the finished left part at all; keep it pixel-identical. In the new mirrors show faint cyan reflections of an underwater coral garden and of snowy mountain peaks. Everything that is not pillar or mirror stays flat solid #FF00FF magenta.
+
+---
+model: google/gemini-3.1-flash-image via OpenRouter chat completions (modalities image+text, aspect_ratio 21:9); cost_usd: 0.067942
+attachments: w1-mid-outpaint-canvas.png
+date: 2026-09-15T14:39:58.721Z
+returned: image/png 1584x672
+attempt: 1
+licence/terms: Gemini API Additional Terms of Service https://ai.google.dev/gemini-api/terms ("Use of Generated Content: ... Google won't claim ownership over that content"); Google Generative AI Prohibited Use Policy https://policies.google.com/terms/generative-ai/use-policy; OpenRouter Terms of Service https://openrouter.ai/terms. Output carries an invisible SynthID watermark. Commercial use: permitted by these terms (no non-commercial restriction).

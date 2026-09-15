@@ -1,0 +1,15 @@
+Cozy fairy-tale 16-bit pixel art look for a 2D side-scrolling platformer. Clean readable shapes, soft hue-shifted shading (shadows lean violet-blue, highlights lean warm), light from the upper left. Orthographic side view, no perspective tilt, no camera blur, no depth of field. No text, no letters, no numbers, no logos, no user interface, no watermark, no signature.
+
+Anna: an original cute chibi heroine (not based on any existing character), about 3 heads tall, big friendly eyes, rosy cheeks, long straight brown hair past the shoulders with a small gold bell hairpin on the right side, a light "sugar-paper" blue quilted puffer jacket with horizontal quilting lines, dark blue jeans, white sneakers. Dark plum 1-pixel outline around the figure.
+
+Draw everything on a completely flat, solid #FF00FF magenta background: one uniform colour, no gradient, no texture, no floor, no cast shadow on the background, no glow bleeding into it.
+
+Same character as the attached reference sheet, identical proportions, colours, outline and hairpin. Draw 2 full-body poses side by side in one row, all at exactly the same scale as the reference, evenly spaced with wide magenta gaps between figures, all feet (or the lowest point of the pose) aligned to one thin straight black horizontal baseline, facing right. Poses from left to right: 1) standing relaxed, arms down; 2) same pose breathing in, shoulders slightly higher, hair slightly lifted. No motion lines, no dust, no shadows, no text.
+
+---
+model: google/gemini-3.1-flash-image via OpenRouter chat completions (modalities image+text, aspect_ratio 16:9); cost_usd: 0.0679275
+attachments: anna-ref.png
+date: 2026-09-15T14:35:21.031Z
+returned: image/png 1376x768
+attempt: 1
+licence/terms: Gemini API Additional Terms of Service https://ai.google.dev/gemini-api/terms ("Use of Generated Content: ... Google won't claim ownership over that content"); Google Generative AI Prohibited Use Policy https://policies.google.com/terms/generative-ai/use-policy; OpenRouter Terms of Service https://openrouter.ai/terms. Output carries an invisible SynthID watermark. Commercial use: permitted by these terms (no non-commercial restriction).

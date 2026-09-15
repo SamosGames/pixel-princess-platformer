@@ -23,10 +23,10 @@ cells wide or less. Boss levels use the shared arena layout from `04-boss.md`.
 | --- | --- | --- | ---: | --- | --- | --- | --- | ---: |
 | 1 | Soglia degli Echi — `p2.level.1.name` | Cross the mirrored antechamber and recover the first missing measure. | 116 cells | `(18,2), (42,2), (72,2)` | Teach one deterministic `V` vent after the first thorn, then introduce optional `L` magnet after the danger beside three visible `o` collectibles; reuse `M` → `#`. | `x=46`, `x=88` | none | 2/5 |
 | 2 | Chiome delle Campanelle — `p2.level.2.name` | Follow Luce's answering bells into the suspended canopy. | 122 cells | `(20,2), (50,2), (80,2), (104,2)` | Introduce `R` beside an optional `~` phase bridge; reuse a mover, `w`/`B`, and a spring-to-`#` bonus route. | `x=48`, `x=92` | `x=72,y=10`, on a safe flat after the first bridge lesson | 3/5 |
-| 3 | Archivio Sospeso — `p2.level.3.name` | Retrieve Anna's blank page and defeat La Guardiana dell'Eco, the archive's 2-HP mid-boss. | 126 cells | `(18,2), (38,2), (62,2), (88,2)` | Introduce `C` after a long flat teaching strip; combine `!`, `g`, `S`, and a feather bonus route; finish in the shared mid-boss arena. | `x=52` and shared boss `x=100` | none | 3.5/5 |
+| 3 | Archivio Sospeso — `p2.level.3.name` | Retrieve Anna's blank page and defeat La Guardiana dell'Eco, the archive's 2-HP mid-boss. | 126 cells | `(18,2), (38,2), (62,2), (88,2)` | Introduce `C` after a long flat teaching strip; combine `!`, `g`, `S`, and a feather bonus route; finish in the shared mid-boss arena. | `x=52`; pre-boss `x=100` is the opt-in rewarded `+1 heart` offer point | none | 3.5/5 |
 | 4 | Fucina dell'Alba — `p2.level.4.name` | Carry the forged clasp through the dawn forge. | 132 cells | `(20,2), (58,2), (88,2), (112,2)` | Reuse `R`/`~` as two optional short bridges, plus `r`, `s`, `P`, and one mover; checkpoint between bridge sets. | `x=52`, `x=96` | `x=76,y=10`, after the first forge timing beat | 4/5 |
 | 5 | Mare delle Stelle — `p2.level.5.name` | Reconnect Luce's final bell line across the roof's star sea. | 128 cells | `(18,2), (50,2), (82,2), (108,2)` | Reuse `B`/`w` assisted crossings, two offset `V` vents, `C` pressure, an `L` bonus, and an off-phase mover. | `x=52`, `x=96` | none | 4.5/5 |
-| 6 | Tetto del Primo Ballo — `p2.level.6.name` | Defeat La Dama dell'Eco, collect the final note/key, and reopen the ballroom dance. | 126 cells | `(18,2), (54,2), (82,2), (96,2)` | Reuse `C`, `V`, `R`/`~` and `S` only before the arena; finish in the shared 4-HP final-boss arena. | `x=56` and shared boss `x=100` | `x=101,y=10`, on the clear flat before the staircase | 5/5 |
+| 6 | Tetto del Primo Ballo — `p2.level.6.name` | Defeat La Dama dell'Eco, collect the final note/key, and reopen the ballroom dance. | 126 cells | `(18,2), (54,2), (82,2), (96,2)` | Reuse `C`, `V`, `R`/`~` and `S` only before the arena; finish in the shared 4-HP final-boss arena. | `x=56`; pre-boss `x=100` is the opt-in rewarded `+1 heart` offer point | `x=101,y=10`, on the clear flat before the staircase | 5/5 |
 
 ### Curve and retry rules
 
@@ -50,6 +50,9 @@ cells wide or less. Boss levels use the shared arena layout from `04-boss.md`.
 - Place no heart in a death loop. Part 2 grants three hearts total, on Levels 2, 4 and 6,
   one per level at most. `heartsTaken` must remember each pickup through a checkpoint retry,
   preserving the existing no-infinite-lives rule.
+- The pre-boss checkpoints at x100 in Levels 3 and 6 are logical breaks for an opt-in rewarded
+  `+1 heart` offer. The offer is outside the boss state machine, does not alter boss HP or
+  timing, and never replaces the guaranteed checkpoint retry.
 
 Market check: checkpoint spacing, the 2/5 → 5/5 curve, three fixed hearts, and a second boss
 all affect short-session retention and repeat completion. Compare this cadence with the market
@@ -219,6 +222,179 @@ boss anchor                                                     G (x119, y4)
 The arena has no ravine, spike, enemy, pendulum, mover, spring, solid overhead, or active new
 mechanic in columns 112–125. The final boss body is harmless and the goal has no physical wall.
 
+## Trick moments
+
+Each level gets one warm, non-rage “the level is listening” moment inspired by the Level Devil
+hook, but never a cheap critical-path death. The moment is either on an optional route or fully
+telegraphed with a visible cue and a safe wait/jump response. These are data-driven entries in
+the level definition, not a seventh gameplay system and not a new map token:
+
+```js
+tricks: [{
+  id: "bloomingFloor",
+  x: 34,
+  route: "optional",
+  telegraphKey: "p2.trick.1.telegraph",
+  effect: "flower-cover",
+  safeFallback: "lane",
+}]
+```
+
+`build.js` dispatches the stable `id` and uses generated art or primitives for the cue. Every
+entry supplies `route`, `telegraphKey`, `effect`, and `safeFallback`; no trick may alter jump
+physics, the recorded time, boss state, or the logical goal gate.
+
+| Level | Trick moment | Tokens/data needed | Safety rule |
+| --- | --- | --- | --- |
+| 1 | Blooming floor: an optional mirror floor briefly opens into harmless flowers, revealing a bonus `o` line. | `#`, `o`; `tricks: [{ id: "bloomingFloor", route: "optional", effect: "flower-cover" }]` | Petal shimmer is visible first; the normal lane remains solid and safe. |
+| 2 | Shy bell: the optional bonus bell moves one cell away, rings, then returns; it is not the exit portal. | `R`, `~`, `o`; `effect: "shy-bell"` | The lower route continues; the bridge timer and rune remain readable and reactivatable. |
+| 3 | Fake crown: a sparkling optional crown bows and becomes a safe `o` pickup, exposing the archive page behind it. | `!`, `+`, `o`; `effect: "fake-crown"` | The sparkle/bow telegraph is cosmetic; no fake collectible causes damage or steals a life. |
+| 4 | Courtesy crumble: an optional forge ledge shakes dramatically, pauses, and reforms with a warm puff instead of punishing the first touch. | `!`, `R`, `~`; `effect: "safe-crumble"` | The lower route is always open; the shake is a readable joke, not a sudden fall on the critical path. |
+| 5 | Backward breeze: petals briefly fly toward the heroine while the optional bonus line appears to reverse. | `B`, `w`, `L`; `effect: "backward-breeze"` | The visual reversal does not reverse player physics or the actual current; the safe lane remains clear. |
+| 6 | Echo door: an optional pre-arena `R`/`~` route shows a false portal shimmer and a friendly Dama silhouette, then fades. | `R`, `~`, `o`; `effect: "echo-door"` | It is outside columns 112–125, never changes the real `>`, and never touches the boss state machine. |
+
+### Level 1 trick beat
+
+```text
+y=7                         ###      o
+y=10                                  L
+y=11  @  ^  V       #       F       M       >
+y=12  ==========  ==  ========================
+y=13  ==========  ==  ========================
+```
+
+`bloomingFloor` owns the optional `#` route at x34; its `safeFallback` is the lane below.
+
+### Level 2 trick beat
+
+```text
+y=7                              ~~~~  o
+y=10                         R
+y=11  @  ^       F       r       ~       F       >
+y=12  ==========  ==  ===================  ==  =====
+y=13  ==========  ==  ===================  ==  =====
+```
+
+`shyBell` is attached to the optional `o`, not to `>`; the actual goal never moves.
+
+### Level 3 trick beat
+
+```text
+y=7                              +   o
+y=8                          !!!!
+y=11  @       C       F       g       F       >
+y=12  ==========  ==  ================================
+y=13  ==========  ==  ================================
+```
+
+`fakeCrown` is an optional prop/collectible reveal on the upper shelf before the shared boss
+staircase. It cannot alter the mid-boss arena or the pre-boss rewarded-heart break.
+
+### Level 4 trick beat
+
+```text
+y=9                         ~~~~
+y=10                 R      !!!!  o
+y=11  @  ^  r    F       P       R       F       >
+y=12  ==========  ==  =================  ==  ========
+y=13  ==========  ==  =================  ==  ========
+```
+
+`safeCrumble` uses the existing `!` art and a data flag for the harmless pause/reform beat;
+the lower lane does not depend on it.
+
+### Level 5 trick beat
+
+```text
+y=8                         B B B B B
+y=9                              L     o  o  o
+y=11  @  ^       F       C     V   w   V     F       >
+y=12  ==========  ==  =================  ==  =====
+y=13  ==========  ==  =================  ==  =====
+```
+
+`backwardBreeze` is visual-only: its petal direction changes for a short, telegraphed beat,
+while `B`/`w` collision behavior and the safe lower route remain unchanged.
+
+### Level 6 trick beat
+
+```text
+y=7                              ~~~~~  o
+y=8                         R          S
+y=11  @  ^       C       F       V       F       >
+y=12  ==========  ==  ================================
+y=13  ==========  ==  ================================
+```
+
+`echoDoor` ends before the shared arena. Its false portal is scenery/bonus data only; it cannot
+be confused with the logical `>` gate or create a physical wall.
+
+Market check: one optional, streamable trick per level is the smallest way to test the market's
+Level Devil hook without adopting rage deaths. Measure reactions and completion before adding
+more tricks, randomized patterns, or a post-launch trick-only world.
+
+## Wardrobe meta and rewarded breaks
+
+The Part 2 wardrobe replaces the old fixed six-entry `afterLevel` progression. Keep the existing
+layer compositing, but make the catalog slot-based and freely combinable:
+
+- Use wardrobe slots for the existing visual layers: skirt/outfit, bodice, necklace, crown or
+  headwear, gloves, and cape. Each slot has several looks rather than one linear unlock; the
+  launch target is at least a starter look plus multiple earnable or purchasable alternatives.
+- Level completion grants one free look per level, assigned to a slot and permanently available
+  in the fresh Part 2 save. Other looks can be bought with Coccoline or earned from star ratings;
+  no look changes speed, jump, lives, damage, collectible pull, or recorded time.
+- The level-select screen previews each slot combination and shows locked-look sources. The
+  finale receipt lists the equipped combination and newly earned look, so the wardrobe is visible
+  in both the repeat-run decision and the personal gift payoff.
+- Cosmetic IAP bundles may contain looks or slot sets only. Show transparent prices, server-save
+  ownership through Yandex payments/cloud identity, and keep the no-SDK fallback playable with
+  starter and earned looks. There is no pay-to-win stat or ad-removal dependency.
+- The weekly trial can award an exclusive look. It is a catalog source, not a required level
+  reward and not a duplicate currency.
+
+The data shape should live in `config.js` as `WARDROBE_SLOTS` plus look catalog entries, replacing
+the single fixed `SKINS` reward list while keeping the same generated layer canvases and
+`addSkinLayers()`/`syncSkins()` paint order.
+
+Rewarded offers are opt-in buttons at logical breaks only, using the Yandex 4.4/4.5/4.7 rules:
+
+- after a completed level, offer `x2` that level's Coccoline; it does not modify level time;
+- at the pre-boss checkpoints x100 in Levels 3 and 6, offer `+1 heart` before the boss starts;
+  this is outside the boss state machine and does not change HP, timing, or the arena contract;
+- on level select, offer “start with magnet” and “try a locked look for one level”; both are
+  temporary, cosmetic/collection assists and never change jump physics or the recorded time;
+- retain the existing Game Over continue; do not turn a death into a forced ad gate;
+- no ad appears before Level 2. Fullscreen ads remain only after completed levels, with the
+  market-recommended breaks after Levels 3 and 6, never inside a boss arena or trick moment.
+
+Every offer has a visible button and a no-ad/no-SDK fallback. Rewarded video pauses gameplay and
+the timer, and no rewarded result can rewrite a submitted time.
+
+## Weekly time-trial candidates
+
+Use one existing level per week with its own Part 2 native leaderboard and one exclusive wardrobe
+look as the reward. The initial rotation candidates are:
+
+| Candidate | Why it works for a weekly trial | Reward/UX note |
+| --- | --- | --- |
+| Level 2 — Chiome delle Campanelle | Moving-platform waits plus optional `R`/`~` mastery, without a boss variance. | Good first rotation week; share “beat my time” from the level card. |
+| Level 4 — Fucina dell'Alba | Pendulum, roller and bridge timing make a technical route with readable splits. | Strong repeat-run candidate; exclusive forge look. |
+| Level 5 — Mare delle Stelle | Assisted crossing supports a clear speed line and collectible route. | Strong share candidate; exclusive star-sea look. |
+| Level 1 — Soglia degli Echi | Shortest onboarding course for a launch or returning-player week. | Fallback candidate; keep the trick optional in the timed rules. |
+
+Do not put Levels 3 or 6 in the first weekly rotation: the 2-HP/4-HP boss adds fight variance
+and can make a time leaderboard feel like a boss retry leaderboard. They can become later special
+weeks if the native leaderboard format is tested and the boss time remains readable.
+
+The existing share pill carries the trial level and time in its share text; no backend is needed.
+The weekly definition is data (`weekId`, `levelId`, `rewardLookId`, start/end timestamps), while
+Yandex owns the native score table and the cosmetic ownership result.
+
+Market check: Levels 2, 4, 5 and the Level 1 fallback are candidates, not a locked calendar.
+Compare weekly return behavior and exclusive-look conversion with `00-market.md` before adding
+seasonal packs or more leaderboard surfaces.
+
 ## Boss and invariant contract
 
 Both encounters reuse the `G`/`makeBoss()` contract in `04-boss.md`; their differences belong
@@ -268,14 +444,10 @@ Part 2 is a fork/reuse of the engine, not an extension of the Part 1 campaign:
    score, lives, checkpoint, hearts, stars and best-time records are new records for this game;
    do not interpret Part 1's `pj.*` values as unlocked Part 2 content. The native Yandex
    leaderboard is also Part 2-owned and submits only this campaign's final time.
-5. Use six fresh Part 2 wardrobe layers with `afterLevel: 1..6`, rather than inheriting Part 1's
-   completed outfit. Proposed generated keys are `p2_veil`, `p2_brooch`, `p2_boots`,
-   `p2_sleeves`, `p2_hairpin`, and `p2_ballgown`; their labels use `p2.reward.*` keys in IT/EN/RU.
-   This keeps `unlockedSkinKeys()` and `skinUnlockedBy()` data-driven while making the fresh
-   sequel reward loop legible.
-   Market check: reconcile this six-layer baseline with `00-market.md` §3 Must "Wardrobe meta"
-   (several looks per slot) before expanding the wardrobe scope; the human decides the final
-   number of looks and slots.
+5. Replace the fixed Part 1-style `afterLevel` list with the fresh Part 2 `WARDROBE_SLOTS` and
+   look catalog described above. Keep six compositing slots for the current player-layer order,
+   grant one free look on each level completion, and expose Coccoline, star-rating, weekly and
+   cosmetic-IAP sources through the catalog. No Part 1 look or save ownership is inherited.
 6. Add `p2.level.1.*` through `p2.level.6.*`, `p2.objective.*`, `p2.boss.mid.*`,
    `p2.boss.final.*`, `p2.character.guardianaEco.*`, and any Luce, Custode, Dama, checkpoint, reward, cutscene
    and finale keys to all three dictionaries. No user-facing literal belongs in level files,
@@ -284,16 +456,16 @@ Part 2 is a fork/reuse of the engine, not an extension of the Part 1 campaign:
    stable Part 2 `config.js`/`ASSETS` keys. `npm run gen` remains the asset source; the Yandex
    archive is static and the no-SDK fallback remains playable.
 
-Market check: a fresh save, six predictable wardrobe layers, the Part 2 leaderboard, and the
-three-heart cadence define the sequel's retention/meta baseline. Compare this deliberately small
-meta loop with the market worker's findings before adding events, UGC, a second currency, or a
-new ad gate.
+Market check: a fresh save, slot-based look collection, the Part 2 leaderboard, opt-in boosts,
+and the three-heart cadence define the sequel's retention/meta baseline. Compare this deliberately
+small meta loop with the market worker's findings before adding events, UGC, a second currency,
+or a new ad gate.
 
 ## Open questions
 
-- Should the six fresh wardrobe layers use entirely new generated silhouettes or recolour the
-  existing layer shapes? Either choice must keep six `afterLevel: 1..6` rewards and must not
-  imply Part 1 save inheritance.
+- What is the launch look count per wardrobe slot, and which free level looks, star thresholds,
+  Coccoline prices, weekly exclusives and IAP bundles fill each slot? The slot-based meta is
+  locked; the exact catalog and price sheet remain product decisions.
 - Do the longer 126–132-cell maps and new bounded token objects hold the mobile/Yandex frame
   budget? Verify with the mobile suite and a real-device pass after implementation; shorten an
   optional route before weakening culling, greedy collision meshing, or deterministic hazards.

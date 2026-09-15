@@ -8,6 +8,10 @@ application. Keep one engine context, one `game` scene, one generic
 the existing canvas-native menu/world journey rather than creating a second
 build, page, or runtime.
 
+> **Market check:** A visible Part 2 entry point can support a return loop and
+> sequel discovery without another install, but the research should validate
+> whether it should be locked behind Part 1 completion or shown as a preview.
+
 The sequel's stable identity is `part2`; level numbers are scoped to that part.
 This avoids collisions between Part 1 level `1` and Part 2 level `1` in saves,
 analytics, and records. Part 1 keeps its existing native leaderboard name and
@@ -32,6 +36,10 @@ Recommended flow:
 3. `Resume` enters the saved part's current run. `New game` resets only the
    selected part's run and starts its first level. Selecting another part does
    not erase either part's completion stars or best times.
+
+   > **Market check:** Preserving a separate Part 2 progression track is a
+   > meta-progression/retention choice; reconcile the resume friction and
+   > replay incentive with the market findings.
 4. Resolve a level by `(partId, levelId)`, then pass the resulting definition
    unchanged to `buildLevel(def)`. Part 2 data belongs under a scoped path such
    as `src/levels/part2/level1.js`; its definitions still use
@@ -150,6 +158,11 @@ UI preference unless Yandex's public profile is being used.
   retain the current debounce and local immediate writes. A localStorage or SDK
   failure must leave the in-memory run playable.
 
+> **Market check:** Cross-device continuity can improve return sessions, while
+> a conservative offline-first merge deliberately avoids account friction. Check
+> the research before adding sign-in prompts, social saves, or a heavier meta
+> layer.
+
 The migration needs fixtures for: a clean v1 local save, a v1 cloud save that
 is farther than local, two different active runs, malformed cloud fields, and a
 v2 document with both parts already progressed. This is the highest-risk part
@@ -176,11 +189,19 @@ part id when it loads, submits, highlights the player's row, or reopens the
 board. A Part 2 finish must never post to the Part 1 board, and a menu board
 opened while Part 2 is selected must show Part 2 standings.
 
+> **Market check:** Separate boards give Part 2 a fresh competitive reset but
+> split social proof and player traffic. Compare that trade-off with the
+> research before deciding whether an overall board should remain deferred.
+
 Keep `extraData` as the numeric run score for compatibility with existing Part
 1 rows. Do not add a server-side leaderboard or revive `api/leaderboard.js` for
 Yandex: native Yandex leaderboards plus the local `null` fallback cover this
 product. An overall cross-part board is intentionally deferred because its
 ranking rule (time across different content lengths) is not defined.
+
+> **Market check:** The no-backend choice lowers operational risk and package
+> size, but it also defers richer events, UGC, and cross-part social features;
+> reconcile that intentionally narrow launch scope with the market research.
 
 ## Generated asset pipeline additions
 
@@ -216,6 +237,11 @@ The first implementation should prefer existing Kaplay primitives for generic
 effects. Add generated art only where it materially improves the Part 2 visual
 identity; this limits archive growth and avoids a new asset type for a single
 object.
+
+> **Market check:** Reusing tracks and primitives protects load time and budget
+> but may reduce the perceived novelty of a paid/returning sequel. Use the
+> research to set the minimum Part 2 theme/asset freshness before commissioning
+> more media.
 
 ## i18n workflow
 
@@ -286,6 +312,11 @@ Using the existing iPhone-landscape emulation, add assertions that:
 
 The test remains an emulation-level mechanism check; real iOS WebKit audio,
 notch insets, and Screen-Time behavior still require a physical phone.
+
+> **Market check:** Keep the existing rewarded continuation and scheduled
+> fullscreen-ad seams in `yandex.js`, but do not add new interruptions in this
+> architecture pass. Validate rewarded value and acceptable ad frequency against
+> the research before changing those placements.
 
 ## Performance and package budgets
 

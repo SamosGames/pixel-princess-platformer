@@ -31,6 +31,10 @@ levels followed by a finale). If the project instead combines both campaigns in 
 save, the level IDs, unlock progression and Yandex leaderboard semantics need a
 separate decision; see Open questions.
 
+**Market check:** A fresh six-level campaign is the clearest sequel onboarding, while
+carryover progress may be stronger for returning-player retention. Reconcile this
+choice with the market worker's findings before locking save continuity.
+
 ## Characters
 
 ### Returning
@@ -86,6 +90,11 @@ The current legend already supports the needed story beats: `#` semisolids, `M`
 springs, `!` crumble platforms, `F` checkpoints, `g`/`S` swoopers, `r` rollers,
 `w` updrafts, `B` breezes, `P` pendulums and `G` the boss.
 
+**Market check:** Six short chapters, optional high routes and collectible completion
+give the sequel a lightweight repeat-run loop. Validate their expected session length,
+checkpoint cadence and replay value against the retention research before adding any
+larger meta layer.
+
 ## Level-by-level narrative hooks
 
 These are hooks for level titles, checkpoint lines and reward cards. Any copy shown to
@@ -126,6 +135,10 @@ Gameplay hook: moving shelves, crumble ledges and swoopers create a readable
 "keep moving, then wait" chapter. A feather may expose an optional high shelf, but the
 critical path must work without it and without a double jump. A checkpoint before the
 most dangerous shelf run makes a retry fair.
+
+**Market check:** The optional feather route is a low-cost replay incentive. Confirm
+whether research supports expanding optional routes or instead prioritises persistent
+collection/progression; this story does not require either expansion.
 
 ### 4. Fucina dell'Alba — Dawn Forge
 
@@ -192,6 +205,11 @@ Part 2 should preserve the existing presentation rules:
 - the Yandex build remains static. The story must not depend on a server, a cloud save
   being available, or a new leaderboard endpoint.
 
+**Market check:** New accessory layers, collection completion and event-like return
+visits are retention-sensitive. Keep them as open product choices until the market
+research compares cosmetic meta progression and live-event expectations; do not add a
+new currency or ad beat to the story by assumption.
+
 ## Cutscene and finale beats
 
 1. **Opening, after the Part 1 ballroom:** the existing celebration settles; the first
@@ -214,6 +232,11 @@ Part 2 should preserve the existing presentation rules:
 8. **Existing platform payoff remains unchanged:** show the final time, offer the
    leaderboard first, then chain the Coccoline receipt. Keep the current
    `leaderboard -> receipt -> menu` order and the unskippable invitation gate.
+
+**Market check:** The leaderboard invitation is the sequel's social/replay hook, while
+the receipt is the gift's personal payoff. Check leaderboard conversion, share behavior
+and rewarded-ad expectations in the market research before changing this order or
+adding monetization to the finale.
 
 ## New i18n namespaces
 

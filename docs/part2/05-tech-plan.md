@@ -1,396 +1,455 @@
 # Part 2 technical plan
 
-## Decision summary
+This is an implementation plan for Part 2, **The Unfinished Waltz**. It is a
+design document only: this section does not change game code, generated
+assets, or tests.
 
-Part 2 should ship as a second content pack inside the existing static Kaplay
-application. Keep one engine context, one `game` scene, one generic
-`buildLevel(def)` path, and one generated-asset pipeline. Add a part selector to
-the existing canvas-native menu/world journey rather than creating a second
-build, page, or runtime.
+## Locked release boundary
 
-> **Market check:** A visible Part 2 entry point can support a return loop and
-> sequel discovery without another install, but the research should validate
-> whether it should be locked behind Part 1 completion or shown as a preview.
+Part 2 is a separate Yandex Games title with its own page, not an extension of
+the Part 1 release. It has:
 
-The sequel's stable identity is `part2`; level numbers are scoped to that part.
-This avoids collisions between Part 1 level `1` and Part 2 level `1` in saves,
-analytics, and records. Part 1 keeps its existing native leaderboard name and
-save behavior through a compatibility migration.
+- a new Yandex app ID and its own game page;
+- its own static archive produced through `package:yandex`;
+- a fresh local/cloud save namespace, with no Part 1 save migration or
+  carry-over;
+- its own native Yandex leaderboard; and
+- a separate Part 2 entry point and release configuration.
 
-## Part selection and level architecture
+The engine may be reused, but Part 2 must not import Part 1 level data, save
+keys, leaderboard IDs, or progression state. Part 1 remains canon backstory
+only.
 
-The current menu already paints a six-world journey from `getCurrentLevel()`
-and `getLevelStars()`, while `src/levels/index.js` maps level numbers to pure
-data and `src/scenes/game.js` asks `buildLevel()` to turn that data into
-objects. Extend those seams; do not fork `game.js` or make a Part 2 copy of
-`build.js`.
+`MAX_LEVEL=7` has one precise meaning in the Part 2 app: levels 1–6 are
+playable and level 7 is the non-playable finale scene/sentinel. The runtime
+must never try to build a map for level 7. No implementation or test may
+extend the playable range beyond level 6 or renumber the finale sentinel.
 
-Recommended flow:
+The registered world order and user-facing names are:
 
-1. Add a small part registry (content metadata, level registry, finale key
-   group, and leaderboard id). It may live beside the level registry; it is not
-   a second engine or a new build target.
-2. Make the existing `menu` scene show Part 1 and Part 2 cards/tabs above the
-   journey dots. The selected card controls which registry the existing map,
-   resume button, stars, and next-world label read.
-3. `Resume` enters the saved part's current run. `New game` resets only the
-   selected part's run and starts its first level. Selecting another part does
-   not erase either part's completion stars or best times.
+| Number | World | Runtime role |
+| ---: | --- | --- |
+| 1 | Soglia degli Echi | Playable level |
+| 2 | Chiome delle Campanelle | Playable level |
+| 3 | Archivio Sospeso | Playable level; mid-boss at the end |
+| 4 | Fucina dell'Alba | Playable level |
+| 5 | Mare delle Stelle | Playable level |
+| 6 | Tetto del Primo Ballo | Playable level; final boss |
+| 7 | Finale | Non-playable scene only |
 
-   > **Market check:** Preserving a separate Part 2 progression track is a
-   > meta-progression/retention choice; reconcile the resume friction and
-   > replay incentive with the market findings.
-4. Resolve a level by `(partId, levelId)`, then pass the resulting definition
-   unchanged to `buildLevel(def)`. Part 2 data belongs under a scoped path such
-   as `src/levels/part2/level1.js`; its definitions still use
-   `composeMap()`, `terraces`, `movers`, `semisolids`, `decor`, and the existing
-   legend.
-5. Reuse the registered `finale` scene with a part-specific content record,
-   or a thin part-specific finale registration that calls the same renderer.
-   The current Part 1 `CLASSIFICA → SCONTRINO` gate remains intact. A Part 2
-   completion must select the Part 2 board before the receipt is chained.
+The two encounters are distinct instances of the existing `G` / `makeBoss`
+contract:
 
-Do not use the current global `MAX_LEVEL` as the Part 2 boundary. Replace its
-meaning with per-part `lastPlayableLevel`/`finale` metadata at the registry
-boundary; keep `config.js` as the source of truth for tunables and the asset
-manifest, not scattered scene constants.
+| Boss ID | Location | HP | Required result |
+| --- | --- | ---: | --- |
+| `p2.mid` | End of level 3 | 2 | Defeat opens the level goal/key route |
+| `p2.final` | Level 6 | 4 | Defeat completes the playable campaign and enters level 7 |
 
-No new HTML entry point, bundler, server route, or database is needed. The
-Yandex upload remains the same static archive, and local fallback behavior must
-remain playable when no SDK exists.
+Both boss bodies remain tagged `boss`, not `enemy`; only deterministic,
+telegraphed attack objects are hazards. The arena, stomp window, bounce,
+reachable key, and logical goal must preserve the softlock-proof rules in
+`docs/part2/04-boss.md`.
 
-### Non-negotiable content guardrails
+> **Market check:** A separate title and fresh start make the sequel easier to
+> understand for a new Yandex player, but remove Part 1 carry-over as a
+> retention hook. Compare this clean onboarding against the research before
+> adding any cross-title promotion or unlock promise; cross-title progression
+> is not a technical requirement and is forbidden by this release boundary.
 
-- On the direct critical path, every jump gap is at most two cells. There is no
-  double jump. A wider visual crossing is allowed only when the data gives her
-  a guaranteed ride/current route and does not ask a jump to clear it.
-- A spring's landing target is always a `#` semisolid, never a solid `=` slab;
-  the existing full-height bounce must have clear space above it.
-- A Part 2 boss follows the existing softlock-proof contract: tag the body as
-  `boss`, not `enemy`; make only telegraphed spawned attacks `hazard`; keep a
-  deterministic recurring vulnerable window; and leave a reachable key/goal
-  route with no physical wall that can wedge the heroine.
-- All Italian player-facing copy stays feminine and the finale/reward remains
-  personal to Anna. These are content acceptance criteria, not optional polish.
+## Repository and entry-point strategy
 
-## Save data and cloud-save migration
+### Recommendation: shared engine modules plus a second entry
 
-### Shape
+Use one repository with a sibling Part 2 app boundary and a small shared
+engine layer. The suggested shape is:
 
-The current save is split among `pj.*` localStorage keys and a Yandex object
-with `version: 1`. `state.js` is the synchronous local source of truth;
-`yandex.js` should continue to be transport-only. Introduce a versioned
-canonical document (`schemaVersion: 2`) with shared profile/settings and
-part-scoped progress:
+```text
+src/
+  shared/                 # pure Kaplay/engine/platform utilities only
+  part1/                  # existing title boundary, unchanged by Part 2
+  part2/
+    main.js               # second application entry
+    config.js             # Part 2 gameplay source of truth; MAX_LEVEL=7
+    state.js              # Part 2-only state and storage namespace
+    levels/                # level1.js ... level6.js, build.js, mapkit.js
+    scenes/                # menu, game, finale for the Part 2 app
+    i18n/                  # IT/EN/RU dictionaries for Part 2
+    assets/                # Part 2 generated output/manifest
+```
+
+The current flat Part 1 paths can stay as the compatibility boundary while
+shared utilities are extracted only when a Part 2 caller needs them. Do not
+move or rename Part 1 files as part of the first Part 2 milestone.
+
+The alternative is a full repository fork. A fork gives maximal file-level
+isolation, but duplicates Kaplay/platform fixes, generator behavior, and
+mobile test maintenance. The shared-module/second-entry option is preferred
+because it keeps those fixes aligned while still producing two independent
+archives. It is safe only with these boundaries:
+
+1. `src/part2/main.js` owns Part 2 scene registration and never calls the Part
+   1 entry point.
+2. Part 2 injects its own config, state, dictionaries, asset manifest, app ID,
+   and leaderboard ID.
+3. Shared modules contain mechanics/adapter primitives, not Part 1 level
+   numbers, save keys, world names, or completion data.
+4. `package:yandex` accepts an app target and stages only that target's entry,
+   HTML, generated assets, and runtime modules. Part 1 packaging output is
+   unchanged.
+
+If the two titles later require incompatible engine behavior or independent
+release ownership, make the fork then. Forking now would make the current
+small Kaplay engine pay the maintenance cost before that divergence exists.
+
+## Part 2 runtime and level registration
+
+The Part 2 entry should register exactly six map builders and one finale
+scene:
+
+```text
+level 1 -> Soglia degli Echi       -> buildLevel1()
+level 2 -> Chiome delle Campanelle -> buildLevel2()
+level 3 -> Archivio Sospeso        -> buildLevel3() + p2.mid
+level 4 -> Fucina dell'Alba        -> buildLevel4()
+level 5 -> Mare delle Stelle       -> buildLevel5()
+level 6 -> Tetto del Primo Ballo   -> buildLevel6() + p2.final
+level 7 -> finale scene            -> no map builder
+```
+
+`src/part2/config.js` is the single source of truth for `MAX_LEVEL`, tile and
+viewport values, player physics, boss timing, mechanic tuning, and release
+feature flags. `build.js` and `mapkit.js` remain data-driven: map characters
+dispatch to builders and level files describe placement. Avoid scene-specific
+magic numbers and avoid a second copy of a tuning constant in a level file.
+
+Part 2 preserves the existing geometry invariants:
+
+- every direct critical-path gap is at most two cells;
+- there is no double jump or hidden second air impulse;
+- a spring's landing target is a `#` semisolid, never a `=` visual-only
+  surface;
+- `=` remains a visual/greedy-mesh concern, not one physics body per cell;
+- culling may hide drawing but must not remove a gameplay body, goal, key, or
+  boss dependency; and
+- both boss goals remain reachable after every defeat/retry path.
+
+### New map tokens
+
+The builder legend is case-sensitive. The following uppercase/new symbols are
+reserved for Part 2 and do not collide with the existing legend
+`= # M ! F g S G r w B P ^ o * + H c f h s @ >`:
+
+| Token | Meaning | First required use | Builder contract |
+| --- | --- | ---: | --- |
+| `L` | Coccoline magnet pickup | Level 1 | Optional pickup; attracts ordinary collectibles only |
+| `V` | Steam vent hazard | Level 1 | Deterministic dormant/warning/active cycle |
+| `R` | Resonance rune trigger | Level 2 | Activates the level's bounded `~` bridge set |
+| `~` | Phase bridge segment | Level 2 | One-way semisolid while its rune is active |
+| `C` | Charger enemy | Level 3 | Reuses the generic enemy update/telegraph path |
+
+The dispatcher must reject unknown map characters in development/test builds.
+It must not silently reinterpret a new uppercase token as a Part 1 token.
+
+Required introduction order and baseline tuning from the mechanics section:
+
+- **Level 1 — `L` and `V`:** Place `L` after a low row of three ordinary
+  collectibles, off the critical route. Place the first `V` after the first
+  thorn with room to read its warning. The magnet uses radius 192, duration 8
+  seconds, pull speed 480, and at most four targets; it never attracts `H`,
+  `*`, `+`, keys, or bosses and does not change the player's velocity. A vent
+  uses a 3.2-second period, 0.7-second warning, 0.9-second active window,
+  112-pixel height, and 48-pixel width. It has no per-frame particle system
+  or always-on body; only the active phase collides.
+- **Level 2 — `R` and `~`:** Use one rune and one bridge set on an optional
+  upper route. A set contains at most eight segments, is active for five
+  seconds, and is a one-way semisolid. Its timer pauses while Anna stands on
+  the bridge. Do not add a general scripting system for this interaction.
+- **Level 3 — `C`:** Introduce the charger on a clear flat strip before using
+  it beside the mid-boss approach. Baseline values are notice distance 320,
+  telegraph 0.55 seconds, speed 430, travel 256, recovery 0.8 seconds, and
+  at most three chargers in a level.
+
+New token art and behavior must be generated/registered together. A map test
+must prove the tokens appear in their required levels and that `~` is not
+treated as a permanent solid.
+
+> **Market check:** The magnet, optional phase route, and charger create
+> collection and mastery hooks without adding a meta-progression layer. Keep
+> them optional or readable at introduction; validate any later decision to
+> make collection mandatory against retention and difficulty findings.
+
+## Save data and Yandex cloud-save merge
+
+### Fresh identity, no migration
+
+Part 2 starts at level 1 for every new Part 2 player. Use a distinct local key,
+for example `pixel-princess-part2.save.v1`, and a distinct Yandex app/cloud
+identity configured for the new app ID. The Part 2 adapter must not read the
+Part 1 local prefix, probe Part 1 keys “just in case,” or request/transform a
+Part 1 cloud document. There is no Part 1 → Part 2 migration.
+
+The payload can use a small, versioned Part 2 shape:
 
 ```js
 {
-  schemaVersion: 2,
-  activePart: "part1",
-  heroine: "anna",
-  settings: { music, sfx, musicVol, sfxVol, language },
-  coccolineLifetime: 0,
-  parts: {
-    part1: {
-      unlockedLevel: 7,
-      levelStars: { "1": 3 },
-      bestTimes: { "1": 42000 },
-      completed: true,
-      run: {
-        runId: "…",
-        currentLevel: 6,
-        score: 0,
-        lives: 3,
-        runTime: 0,
-        checkpoint: null,
-        heartsTaken: [],
-        coccolineRun: 0,
-        updatedAt: 0
-      }
-    },
-    part2: {
-      unlockedLevel: 1,
-      levelStars: {},
-      bestTimes: {},
-      completed: false,
-      run: null
-    }
+  app: "pixel-princess-part2",
+  schemaVersion: 1,
+  revision: 0,
+  updatedAt: 0,
+  progress: {
+    highestUnlockedLevel: 1,
+    completedLevels: [],
+    bestTimeMs: {}
+  },
+  settings: {
+    language: "it",
+    sound: true,
+    music: true
   }
 }
 ```
 
-The exact field names can follow the existing `state.js` vocabulary, but the
-part namespace and `runId` are required. `levelStars` and `bestTimes` remain
-maps because that is the existing representation and keeps the document small.
-`coccolineLifetime` is shared across parts; `coccolineRun` belongs to the active
-run so the gift's receipt still charges one journey. Nickname remains a local
-UI preference unless Yandex's public profile is being used.
+The exact field set may follow the existing state shape, but volatile run data
+(current position, active boss phase, temporary magnet timer, and live HP)
+must not be treated as durable progress. A malformed or wrong-app payload is
+discarded as a new Part 2 save, with no attempt to salvage fields from it.
 
-### Migration and merge rules
+### Merge within Part 2 only
 
-- On boot, normalize the v2 local document first. If it is absent, read the
-  existing `pj.character`, `pj.currentLevel`, `pj.score`, `pj.lives`,
-  `pj.checkpoint`, `pj.heartsTaken`, `pj.runTime`, `pj.levelStars`, and
-  `pj.bestTimes` keys into `parts.part1.run`/Part 1 progress. The migration is
-  idempotent and writes the canonical document without removing legacy data;
-  retaining old keys for one release makes rollback and interrupted migration
-  safe.
-- Normalize an old cloud object at the same boundary. `version: 1` maps to
-  `part1`; a missing version is treated as an untrusted legacy object and only
-  known, validated fields are accepted. Unknown fields are ignored.
-- Merge durable progress monotonically per part: maximum unlocked level,
-  maximum stars per level, and minimum positive best time. Scores use maximum
-  per part. Clamp level, stars, lives, score, and times exactly as the current
-  state code does; reject NaN, negative, and malformed checkpoint values.
-- Merge an active run only when its `runId` matches. For matching runs, keep
-  the most recently updated valid checkpoint/run snapshot. For different run
-  ids, do not union `heartsTaken`, add scores, or take the maximum lives: that
-  would resurrect a heart or combine two unfinished attempts. Keep the local
-  active run unless the cloud snapshot is explicitly newer and valid.
-- Merge settings by preference, not by numeric max: a locally chosen setting
-  wins; a cloud setting fills an unset local value. `activePart` follows the
-  local selection unless the local document has no selected part.
-- After the merged document is installed in memory and localStorage, schedule
-  one canonical v2 cloud write. `hydrateCloudProgress()` must finish before
-  the first menu is built, as it does today, so the map never flashes stale
-  Part 1 progress.
-- Keep cloud saves conservative and bounded. No per-frame cloud writes;
-  retain the current debounce and local immediate writes. A localStorage or SDK
-  failure must leave the in-memory run playable.
+“Cloud-save merge” means resolving a Part 2 local save and a Part 2 cloud save
+after Yandex login; it does not mean migrating Part 1. The deterministic
+policy is:
 
-> **Market check:** Cross-device continuity can improve return sessions, while
-> a conservative offline-first merge deliberately avoids account friction. Check
-> the research before adding sign-in prompts, social saves, or a heavier meta
-> layer.
+1. No cloud document: validate and upload the local Part 2 save.
+2. No local save: validate and adopt the Part 2 cloud save.
+3. Both present: union `completedLevels`, take the greatest valid
+   `highestUnlockedLevel`, and take the fastest positive `bestTimeMs` per
+   level. Settings use the most recently written valid record. Clamp all
+   levels to 1–6 and reject a claimed level 7 completion unless the finale
+   receipt flag is present.
+4. Write the merged record with an incremented Part 2 revision after the
+   player reaches a safe checkpoint or completes a level. A cloud failure
+   must not block offline play; retry with bounded backoff.
 
-The migration needs fixtures for: a clean v1 local save, a v1 cloud save that
-is farther than local, two different active runs, malformed cloud fields, and a
-v2 document with both parts already progressed. This is the highest-risk part
-of the sequel because a bad merge can silently lose Anna's progress.
+The merge must be idempotent and must never lower local progress because a
+stale cloud response arrived later. A future Part 2 schema change may add an
+explicit decoder for `schemaVersion: 1`; it must remain inside the Part 2
+namespace and must not become a general Part 1 compatibility path.
 
-## Leaderboards per part
+> **Market check:** Cross-device continuity is useful, but a fresh sequel save
+> means the first-session activation path must be short and reliable. Measure
+> login/cloud failure behavior before adding prompts that delay the first
+> playable level.
 
-The existing adapter submits `timeMs` as the native Yandex score (fastest first)
-and the journey score as `extraData`; `src/ui/leaderboard.js` already owns the
-DOM form, native-profile behavior, offline fallback, and the idempotent finale
-gate. Preserve all of that and add `partId` to the calls.
+## Leaderboards and finale handoff
 
-Use separate stable native boards:
+Part 2 gets a separate native Yandex leaderboard. Use a stable code constant
+such as `pixel_princess_part2_time`, with the final console board ID confirmed
+before release. Do not post Part 2 results to `pixel_princess_time`, and do
+not create a combined Part 1/Part 2 board.
 
-| Part | Native board id | Compatibility |
-| --- | --- | --- |
-| Part 1 | `pixel_princess_time` | Keep the shipped id unchanged. |
-| Part 2 | `pixel_princess_part2_time` | Create/configure in the Yandex console before release. |
+The result adapter should preserve the existing semantics: submit a validated
+final completion time (and any small display-safe `extraData` such as the
+Part 2 journey score) only after the final boss is defeated and level 7 is
+entered. Offline/local fallback may show a local result, but it is not a
+second server leaderboard. Auth or submission failure must still allow the
+receipt to render.
 
-The platform adapter should select the id from a single part-to-board map and
-never accept an arbitrary board name from level data. `fetchLeaderboard()` and
-`submitLeaderboard()` receive `partId`; `openLeaderboard()` passes the same
-part id when it loads, submits, highlights the player's row, or reopens the
-board. A Part 2 finish must never post to the Part 1 board, and a menu board
-opened while Part 2 is selected must show Part 2 standings.
+The Part 2 finale order is fixed:
 
-> **Market check:** Separate boards give Part 2 a fresh competitive reset but
-> split social proof and player traffic. Compare that trade-off with the
-> research before deciding whether an overall board should remain deferred.
+```text
+final boss defeated -> enter non-playable level 7 -> open Part 2 native board
+                     -> render receipt/share actions
+```
 
-Keep `extraData` as the numeric run score for compatibility with existing Part
-1 rows. Do not add a server-side leaderboard or revive `api/leaderboard.js` for
-Yandex: native Yandex leaderboards plus the local `null` fallback cover this
-product. An overall cross-part board is intentionally deferred because its
-ranking rule (time across different content lengths) is not defined.
+The UI must label the board and receipt as Part 2 where a player could confuse
+them with the first game. Part 1's board and finale behavior remain outside
+this app bundle.
 
-> **Market check:** The no-backend choice lowers operational risk and package
-> size, but it also defers richer events, UGC, and cross-part social features;
-> reconcile that intentionally narrow launch scope with the market research.
+> **Market check:** A new board gives sequel players a fair competitive reset,
+> while a shared board could make returning Part 1 players feel recognized.
+> Keep the native boards separate per canon and use research to decide only
+> the presentation, cadence, and optional share prompt.
 
-## Generated asset pipeline additions
+Do not add a server leaderboard or a new backend for this plan. Reuse the
+existing Yandex adapter boundary and native API path.
 
-`tools/gen/index.mjs` is the deterministic orchestrator. New art should be
-authored in `tools/gen/*.mjs`, emitted into `assets/`, and registered by stable
-keys in `src/config.js` so `src/assets.js` remains the only loader. Never hand
-edit generated files.
+## Asset generation and packaging
 
-Additions:
+The Part 2 asset pipeline should reuse the existing deterministic generator
+utilities (`tools/gen/index.mjs` and its world/character/background/audio
+helpers) while writing a Part 2 manifest/output directory. Generated files,
+not hand-edited images, are the source of truth.
 
-- Add only Part 2 theme names, sprites, tile frames, or sounds that are not
-  reusable from Part 1. Reuse the existing neutral tile atlas, portal,
-  collectibles, UI font, and primitives wherever they fit; a new level theme
-  can still tint shared frames through `theme.solid`, `theme.solidTop`,
-  `theme.goal`, and related fields.
-- For a new pixel-art collectible/enemy/decor prop, add a painter or strip
-  builder in the appropriate generator module, add its animation contract to
-  `src/animspec.js` when needed, then add the asset key/path to `ASSETS` and
-  the level theme. Keep native dimensions and nearest-neighbour integer
-  upscaling consistent with `world.mjs`/`px.mjs`.
-- Add Part 2 background layers to `BG_THEMES` and emit the same sky/mid/near
-  trio. Add a BGM only when an existing track cannot carry the theme; one
-  shared Part 2 track is preferable to six level tracks.
-- Add a generated-output check: every manifest path exists, every generated
-  sprite has the expected dimensions/strip frame count, and running `npm run
-  gen` twice leaves no content diff. The check belongs with the test/package
-  workflow, not in the game runtime.
-- Keep generated promo material out of the Yandex runtime unless the archive
-  explicitly needs it. The existing package script includes only runtime
-  `index.html`, legal files, CSS, `src`, `assets`, and `vendor`.
+Pipeline additions:
 
-The first implementation should prefer existing Kaplay primitives for generic
-effects. Add generated art only where it materially improves the Part 2 visual
-identity; this limits archive growth and avoids a new asset type for a single
-object.
+1. Add a Part 2 manifest selecting the six world backgrounds, the two boss
+   variants, the L/V/R/C sprites, `~` bridge visuals, vent warning/active
+   frames, and the finale art/audio.
+2. Add generator inputs for any new sprite strips or animation frames. Keep
+   frame dimensions and animation metadata aligned with `src/animspec.js`;
+   fail generation on missing frames rather than rendering a blank fallback.
+3. Keep shared primitive art reusable in source, but stage only the files
+   referenced by the Part 2 manifest into the Part 2 archive. Do not make the
+   Part 2 page depend on the Part 1 page or an external asset URL.
+4. Make generation deterministic and review the manifest diff. The generated
+   output is disposable; the manifest and generator input are committed.
+5. Extend `tools/package-yandex.mjs` with an explicit target such as
+   `--app part2`. The release command is then `npm run package:yandex --
+   --app part2`, producing a Part 2-only archive with its own `index.html`,
+   entry, asset manifest, app metadata, and leaderboard configuration. The
+   default Part 1 package target must remain unchanged.
 
-> **Market check:** Reusing tracks and primitives protects load time and budget
-> but may reduce the perceived novelty of a paid/returning sequel. Use the
-> research to set the minimum Part 2 theme/asset freshness before commissioning
-> more media.
+The new Yandex app ID belongs in release configuration/console metadata, not
+in a shared Part 1 constant. The package check must fail if the Part 2 stage
+contains a Part 1 entry, Part 1 save prefix, or Part 1 leaderboard ID.
+
+> **Market check:** Reusing generator primitives lowers download cost and
+> preserves the gift's visual language; new world and boss art still carry
+> acquisition value. Prioritize art that supports the sequel's store/page
+> presentation only after the research identifies the useful surface.
 
 ## i18n workflow
 
-`src/i18n/it.js` remains the source dictionary; `en.js` and `ru.js` must mirror
-every key. New keys are namespaced so the two parts cannot accidentally reuse a
-different line, for example `part2.menu.title`, `part2.level.1.name`,
-`part2.finale.message`, and `part2.boss.hint`.
+Part 2 owns IT/EN/RU dictionaries under its app boundary, while the key
+validation utility can be shared. Every user-facing string—including world
+names, mechanic help, boss warnings, cloud-save errors, leaderboard labels,
+receipt text, and settings—must be a key, not a literal in a scene or level
+data file.
 
-Rules for each content change:
+Recommended workflow:
 
-1. Add the Italian key first, then the English and Russian values in the same
-   commit. Level/config data carries `nameKey`/`taglineKey`/`descKey`, never
-   visible prose.
-2. Keep Italian feminine when addressing Anna (`Bentornata`, `Sei sicura`,
-   `Sii la prima`) and have a native Italian review the Part 2 finale and all
-   reward/death copy. The game remains a gift for Anna, not a generic neutral
-   product.
-3. Keep all `k.text()` strings free of square brackets. Do not put emoji in
-   pixel-font strings; use the existing per-object `font: "sans-serif"`
-   escape hatch for emoji and long prose. DOM HTML strings remain dictionary
-   values and must not contain user input.
-4. Remember that canvas text is baked when a Kaplay scene is built. The part
-   selector and world map should be rebuilt on a menu language switch; DOM
-   overlays continue to use `data-i18n*` and `applyDomStrings()`.
-5. Extend `tools/test/i18n.mjs` to assert key parity, placeholder parity, no
-   square brackets in canvas-bound content, detection/switching for IT/EN/RU,
-   and the Part 2 finale/leaderboard strings. Keep state-dependent labels out
-   of `data-i18n` when their close/skip state is dynamic.
+1. Add the Italian key first, then add the same key to English and Russian in
+   the same change.
+2. Run a key-set equality check and placeholder check for all three files.
+3. Have an Italian review pass for feminine agreement and natural tone. Anna
+   is the recipient of the gift, and the copy should address her consistently
+   as the princess/player; avoid masculine fallback strings.
+4. Keep dynamic values as named placeholders and test long translations in
+   the 1280x720 layout and mobile viewport. Do not concatenate translated
+   fragments in code.
+5. Include the exact six world names and the finale/boss names in the i18n
+   fixtures so a later rename cannot silently desync the map registry and UI.
+
+The Part 2 package needs only its own dictionary bundle plus shared i18n
+formatting code. It must not silently fall back to Part 1's dictionary for a
+missing gameplay key.
+
+> **Market check:** Localization affects Yandex reach and comprehension, but
+> adding language-specific copy can expand QA cost. Keep the IT/EN/RU launch
+> set required by the engine and use research/analytics to prioritize later
+> copy experiments, not to remove a required locale.
 
 ## Test plan
 
-The existing `npm test` chain is the acceptance spine:
-`platform → smoke → features → levels → boss → i18n`. Add the smallest
-Part 2 checks to those existing tests where possible, plus focused scripts for
-state and registry contracts:
+Keep test execution explicit about the app under test. In a shared repository,
+retain the existing Part 1 checks as `test:part1`, add `test:part2`, and make
+the top-level `npm test` run both. This prevents a green Part 1 suite from
+being mistaken for Part 2 coverage while preserving the familiar command.
 
-| Check | Addition | Failure it catches |
-| --- | --- | --- |
-| Platform | Mock v1/v2 cloud objects; assert v2 save payload and both leaderboard ids, score as `extraData`, and native auth path. | Cross-part posting or cloud schema regressions. |
-| Parts/menu | Select Part 1 and Part 2, resume each, start a new run in one, and assert the other part's stars/run are unchanged. | Global `MAX_LEVEL`/`currentLevel` leakage. |
-| Levels | Iterate the part registry; boot every Part 2 definition, assert goal + collectible build, theme asset keys, and no console/page errors. | Missing registration or asset path. |
-| Map contract | Validate authored critical-path segments: every direct critical-path gap is at most 2 cells; any assisted crossing has an explicit guaranteed mover/current contract. Assert no double-jump requirement. | Unbeatable level data. |
-| Mechanics/boss | Reuse `build.js` and extend `boss.mjs` for every Part 2 boss: `boss` is not `enemy`, attacks spawn as `hazard`, vulnerable phase recurs, stomps reduce HP, and the goal/key route remains reachable. | Boss softlocks and accidental contact damage. |
-| Save migration | Add `tools/test/save.mjs` (or a focused section in `features.mjs`) for local v1 → v2, cloud v1 → v2, max/min/union rules, malformed values, matching/different `runId`, and idempotence. | Silent progress loss or duplicate hearts. |
-| i18n | Extend `i18n.mjs` for namespaced Part 2 keys, all three dictionaries, feminine Italian, placeholders, and the Part 2 board/finale gate. | Missing/fallback prose and wrong board labels. |
-| Package/assets | Run `npm run gen` determinism check and `npm run package:yandex`; inspect archive root, no tests/API/dev files, all manifest paths, and size budget. | Upload rejection or missing runtime media. |
+Add focused Part 2 fixtures/checks to the existing platform, browser, feature,
+level, boss, and i18n test patterns:
 
-Keep the current known flaky frame-boundary cases treated as flaky, not as a
-reason to weaken the gameplay assertions. Browser tests continue to inspect
-`window.__pj` only on localhost and never rely on pixels; add screenshots for
-Part 2 level review, but keep the pass/fail assertions structural.
+| Area | Part 2 assertions |
+| --- | --- |
+| App/package identity | Part 2 entry boots with the new app ID/config; the staged archive has its own index and contains no Part 1 entry, save key, or board ID. |
+| Level registry | Exactly levels 1–6 build; names and order match the locked table; level 7 routes to finale and never to `buildLevel`. |
+| Legend/maps | `L` and `V` occur in level 1, `R` and `~` in level 2, `C` in level 3; `~` is not permanent solid; unknown tokens fail loudly. |
+| Geometry | Critical-path gaps are ≤2 cells, no double-jump path is required, and every spring landing is on `#`, not `=`. |
+| Mechanics | Magnet caps targets/range and excludes keys/bosses; vent collision follows its deterministic cycle; bridge timer and one-way collision work; charger telegraph/recovery and count cap hold. |
+| Bosses | `p2.mid` has 2 HP at the end of level 3; `p2.final` / La Dama dell'Eco has 4 HP in level 6; both use `G`/`makeBoss`, stomp/bounce correctly, attacks are telegraphed hazards, defeat cancels future spawns, and key/goal remain reachable. |
+| Save isolation | A fixture containing Part 1 local keys or a Part 1-shaped cloud object is ignored and unchanged. A missing Part 2 save starts at level 1. No cross-title migration call occurs. |
+| Part 2 cloud merge | Same-app local/cloud union is deterministic, idempotent, monotonic for completion/best times, rejects malformed data, and tolerates offline/API failure. |
+| Leaderboard/finale | Only the Part 2 board ID is submitted; submission failure does not block the level 7 finale; leaderboard opens before the receipt. |
+| i18n | IT/EN/RU key sets and placeholders match; exact world/boss strings exist; Italian copy passes feminine-agreement review; long strings fit mobile layouts. |
+| Package/perf | `npm run package:yandex -- --app part2` succeeds, reports archive size and file count, and excludes Part 1-only files. |
+| Mobile | Part 2 menu/start/resume/new-save flow, language/settings, pause/retry, touch controls, viewport/rotation, level transitions, and both boss arenas smoke-test at narrow and wide mobile sizes. |
 
-### `test:mobile` additions
+The top-level scripts should be shaped like this (names are a plan, not a
+code change in this section):
 
-Using the existing iPhone-landscape emulation, add assertions that:
+```text
+npm test                  -> Part 1 suite + Part 2 suite
+npm run test:part2        -> platform + smoke + features + levels + boss + i18n
+npm run test:mobile       -> Part 1 mobile suite + Part 2 mobile suite
+npm run test:mobile:part2 -> Part 2 mobile checks only
+```
 
-- the Part selector/world map fits at the 932×430 viewport, has no horizontal
-  overflow, and leaves the safe-area controls clickable;
-- switching Part 1 ↔ Part 2 does not expose gameplay touch controls over the
-  menu and entering either part restores `body.playing` and the existing D-pad;
-- a delayed cloud response still reaches the menu with the canonical merged
-  progress and does not block audio/control initialization;
-- pause, background/foreground, rotation, and resume from a Part 2 level keep
-  the tree/audio behavior and net run clock invariants already covered for Part
-  1;
-- the Part 2 finale opens its leaderboard first, uses the Part 2 board, and
-  chains to the receipt on submit or `Salta` without a duplicate invitation.
+Add a Part 2 browser fixture for the two boss loadouts rather than relying on
+one generic “boss exists” assertion. Add a package fixture that scans the
+archive for forbidden Part 1 identifiers. Keep deterministic map and contract
+tests runnable without a browser so they remain useful in CI.
 
-The test remains an emulation-level mechanism check; real iOS WebKit audio,
-notch insets, and Screen-Time behavior still require a physical phone.
+## Performance and archive budget
 
-> **Market check:** Keep the existing rewarded continuation and scheduled
-> fullscreen-ad seams in `yandex.js`, but do not add new interruptions in this
-> architecture pass. Validate rewarded value and acceptable ad frequency against
-> the research before changing those placements.
+The current Part 1 package observed in this checkout is about 9.3 MB
+uncompressed (142 files; roughly 9.0 MB assets). Part 2 has its own budget; it
+does not get to borrow Part 1's archive quota at runtime. Set these release
+budgets:
 
-## Performance and package budgets
+- **Target:** ≤15 MiB uncompressed for the Part 2 staged archive, including
+  generated media and JavaScript.
+- **Warning:** 12 MiB, which triggers asset review before content freeze.
+- **Backstop:** keep the existing packager's 100 MB rejection ceiling, but do
+  not treat it as a design target.
+- **Runtime:** 1280×720 baseline, one active Kaplay loop, no per-cell physics
+  bodies for visual `=`, and no unbounded update/listener registration on
+  scene restart.
 
-Observed Part 1 baseline in this checkout is approximately 9.0 MB of `assets`,
-460 KB of `src`, and 188 KB of vendored Kaplay. The important mobile wins are
-already load-bearing: touch uses `pixelDensity: 1`, active play uses the
-refresh-aware `maxFPS`, idle/frozen states use 30/10 FPS, `=` tiles are visual
-scenery with greedy-meshed static colliders, and off-screen drawing is culled
-without stopping collision or AI.
+Bound dynamic work explicitly: magnet scans at most four targets within its
+bounded radius; each phase bridge set has at most eight segments; a level has
+at most three chargers; vents use one deterministic timer/area each; and only
+the current level's boss and attacks exist. Reuse the existing culling/greedy-
+mesh behavior without culling gameplay dependencies.
 
-Part 2 budget:
-
-- Keep the 1280×720 virtual resolution and the same active/idle/frozen frame
-  policy. Do not throttle active physics to hide an expensive level.
-- Keep a Part 2 map no larger than 140 columns × 14 rows unless a measured
-  exception is approved. Aim for no more than 25% over the largest Part 1
-  level's scenery, collider, enemy, and transient-particle counts.
-- Never add `area()`/`body()` to `=` scenery. New hazards/enemies need one
-  generic builder path, must be included in culling where appropriate, and
-  must not create a per-cell update loop. Particle spawning must use the same
-  near-camera gate as `makeBreeze()`/`makeUpdraft()`.
-- On the reference coarse-pointer run, target 55+ FPS during active play with
-  no sustained frame over 33 ms in the `?fps=1` overlay after warm-up. A
-  lower result is a content-budget failure to investigate, not a reason to
-  lower the gameplay cap.
-- Target total uncompressed Yandex runtime size under 15 MB after Part 2. The
-  existing `tools/package-yandex.mjs` hard-fails at 100 MB uncompressed; keep
-  that as the platform ceiling and add a project budget check at 15 MB. With
-  the observed ~9.0 MB asset baseline, this leaves roughly 6 MB for new art
-  and audio. Measure both staging bytes and the final zip in release QA.
-- Do not add a backend, database, or runtime dependency to meet these limits;
-  the native SDK and static archive are the intended deployment model.
+The package job records uncompressed bytes, compressed bytes, file count, and
+largest files. A performance smoke pass should verify stable frame time in a
+full collectible scene, an active bridge/vent scene, and each boss arena on a
+representative low-end mobile profile.
 
 ## Milestones and task sizes
 
-Sizes assume one developer familiar with the current code; they include focused
-verification but not art/translation queue time unless listed.
+Sizes assume one developer familiar with the current Kaplay project; they are
+implementation estimates, not promises.
 
 | Phase | Deliverable | Size | Depends on |
-| --- | --- | --- | --- |
-| M0 — contracts | Part registry shape, v2 save schema, stable board ids, map/asset budget fixtures, and migration test cases. | S (1 day) | — |
-| M1 — state/cloud | Normalize v1 local/cloud saves, per-part run/progress state, conservative merge, debounced canonical v2 write, and rollback-safe migration. | L (3–5 days) | M0 |
-| M2 — selection | Existing menu/world-map Part selector, per-part resume/new-run flow, scene/finale routing, and no touch/pause overlay regressions. | M (2–3 days) | M0, M1 |
-| M3 — Part 2 content | Register all scoped Part 2 level data files (estimate: six); extend `build.js` only for genuinely new reusable legend mechanics; validate all direct gaps and boss routes. | L (5–8 days; each level M) | M0, M2 |
-| M4 — media/i18n | Deterministic generators, manifest/animspec additions, shared/new music, IT source copy, EN/RU mirrors, and native Italian review. | M (3–5 days) | M3 |
-| M5 — leaderboards | Per-part adapter map, UI `partId` plumbing, Yandex console board setup, offline fallback, and finale gate coverage. | M (2–3 days) | M1, M2 |
-| M6 — QA/package | `npm test` additions, `test:mobile` additions, asset determinism, package whitelist/size checks, level screenshots, and performance pass. | L (3–5 days) | M3–M5 |
-| M7 — release soak | Yandex-hosted smoke, cloud merge on two accounts/devices, native board submit, and physical iPhone rotation/audio check. | M (2–3 days) | M6 |
+| --- | --- | ---: | --- |
+| M0 — boundary/contracts | Confirm new Yandex app/board placeholders, Part 2 entry/config/state interfaces, `MAX_LEVEL=7`, archive isolation, and the locked level/boss/token matrix. | S (1–2 days) | — |
+| M1 — second entry/package | Add the sibling Part 2 entry, target-aware `package:yandex`, own manifest staging, and boot/menu/scene wiring without changing Part 1 output. | M (2–3 days) | M0 |
+| M2 — fresh save/cloud | Implement Part 2-only local/cloud namespace, validation, same-app merge, retry behavior, and isolation fixtures; explicitly omit Part 1 migration. | M (2–3 days) | M0, M1 |
+| M3 — engine contracts | Add builder dispatch for `L`, `V`, `R`, `~`, `C`, config-driven tuning, and both `makeBoss` loadouts with softlock tests. | L (4–6 days) | M0, M1 |
+| M4 — six level data | Port/author levels 1–6 under the locked world names, place mechanics in their required introduction levels, and prove geometry/goal routes. | L (5–8 days; each level M) | M3 |
+| M5 — generated presentation | Add Part 2 backgrounds, mechanic/boss/finale art, animation metadata, audio/manifest inputs, and deterministic generation checks. | M (3–4 days) | M1, M4 |
+| M6 — i18n/leaderboard/finale | Add IT/EN/RU Part 2 keys, feminine Italian review, own native board wiring, level 7 finale order, receipt, and offline fallback. | M (2–3 days) | M2, M4, M5 |
+| M7 — release verification | Run `npm test`, mobile checks, package isolation/size checks, low-end performance smoke, and Yandex staging smoke with the new app ID. | L (3–5 days) | M1–M6 |
 
-Release gate: M6 must be green locally and the archive must remain below the
-15 MB project budget; M7 must confirm the Yandex board ids and cloud migration
-against the production SDK before publishing.
+The critical path is M0 → M1 → M3 → M4 → M6 → M7. M2 and M5 can run in
+parallel once the entry boundary is stable, but M7 must not start until the
+app ID, native board, archive target, and fresh-save behavior are confirmed.
 
 ## Open questions
 
-- Is Part 2 unlocked only after completing Part 1, or should the menu expose a
-  playable Part 2 demo/first level immediately? The registry can support either;
-  the save gate and copy differ.
-- Should switching to a part resume its interrupted run, or always ask between
-  `Resume` and `New game` when a run exists? The plan assumes resume is explicit
-  and never silently resets a run.
-- What is the final Part 2 level count and does it have a boss/finale? The
-  architecture supports six or another count, but the release registry and
-  boss test must not rely on the Part 1 number six.
-- Are `pixel_princess_part2_time` and its public/native visibility approved in
-  the Yandex console? Board creation is a release dependency, not a runtime
-  fallback.
-- Should lifetime Coccoline sync across devices, as proposed, or remain
-  local-only as in the current implementation? Decide before v2 migration so
-  receipts cannot diverge between devices.
-- Does Part 2 need a genuinely new collision mechanic? If yes, can it be
-  expressed as a reusable `build.js` legend/data extension while preserving
-  the no-double-jump and spring-to-semisolid contracts? A bespoke scene is the
-  escalation path, not the default.
-- Which Part 2 themes can reuse existing generated music/background primitives
-  while still feeling distinct for Anna? Resolve this before adding megabytes
-  of media.
+These do not reopen locked canon:
+
+- What numeric Yandex app ID and exact console leaderboard ID will be assigned
+  to Part 2? The code should use release-config placeholders until console
+  provisioning is complete.
+- Should the packager expose `--app part2` on `package:yandex` or provide a
+  thin `package:yandex:part2` alias? Either path must invoke the same packager
+  and produce only the Part 2 archive.
+- What is the mid-boss's final display name and portrait treatment? Its
+  contract remains `p2.mid`, 2 HP, end of level 3, and `G`/`makeBoss`.
+- Which Part 2-generated assets can share source primitives while staying in
+  the archive budget? Decide from generated byte measurements, not by adding
+  runtime cross-title dependencies.
+- Does Yandex cloud-save availability differ across target regions/devices?
+  Confirm the adapter's error/consent behavior before adding any first-session
+  prompt.
+- What rewarded-ad or optional share cadence, if any, is appropriate for the
+  standalone gift? No ad or monetization behavior is part of the locked
+  engine contract; reconcile it with the market research before implementation.
+
+Closed decisions: standalone Yandex title, new app/archive/leaderboard,
+fresh save with no Part 1 migration, six playable levels plus non-playable
+level 7, `MAX_LEVEL=7`, two bosses at 2/4 HP, and the L/V/R/~/C token
+introductions are not open questions.

@@ -158,6 +158,12 @@ current stone guardian can be reused if new art is not worth the download cost.
 - The player enters through a checkpoint before the staircase, never on a spring, edge,
   spike, or active attack. A death spends the normal life/Coccoline cost and rebuilds
   the level from that checkpoint; the boss restarts in its safe `hover` state.
+- The optional rewarded `+1 heart` offer lives at this pre-stair checkpoint, before Anna
+  enters the arena. It is a button-driven offer outside the boss state machine: it may
+  add the heart, but never changes boss HP, phase, timers, attack order, jump physics,
+  or the recorded time. Do not show the offer inside the arena. Fullscreen ads fire
+  only at the logical level-complete break (never during the boss fight or while the
+  arena is active); the no-SDK path remains playable.
 - Market check: the checkpoint preserves the arcade retry loop, while the life/Coccoline
   cost adds monetizable friction. Any rewarded-ad continuation must remain optional and
   must not remove the guaranteed checkpoint retry or make the boss deliberately tedious.
@@ -199,6 +205,7 @@ and Level 6 in the standalone Part 2 build:
 | Stomp semantics | An upward/side overlap leaves HP unchanged; one downward overlap during `window` changes HP by exactly one and makes the boss retreat. Holding overlap cannot remove a second HP. Invulnerable contact still bounces Anna without damage. |
 | Defeat and gate | Perform the configured number of real stomps, observe boss removal and exactly one `key`, collect it from the floor, and verify the goal remains closed before collection and advances the level afterward. |
 | Retry safety | Trigger a boss-hazard death, confirm the checkpoint restart has a fresh boss and no stale `boss-attack`/telegraph objects at the spawn. Confirm a paused/reloaded level also starts the loop safely. |
+| Offer/ad boundary | At the pre-stair checkpoint, verify the button-driven `+1 heart` rewarded offer is outside the boss state machine and does not alter HP, phase, timers, attack order, jump physics, or recorded time. Verify no offer or fullscreen ad appears in the arena; fullscreen is requested only after level completion, and the no-SDK path remains playable. |
 | Locale/platform path | Run the boss flow under the existing `PAGE_LOCALE` and the i18n test's IT/EN/RU passes; verify no missing `p2.boss.mid.*` / `p2.boss.final.*` keys or bracketed canvas text. Run the no-SDK browser path so Yandex absence cannot block the reward or transition. |
 | Standalone campaign boundary | Start with a fresh Part 2 save, confirm Level 1 is the first playable level, Level 6 advances to finale Level 7, and no Part 1 save or leaderboard namespace is read. |
 
